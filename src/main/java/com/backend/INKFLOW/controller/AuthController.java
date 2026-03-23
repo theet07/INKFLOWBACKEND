@@ -1,9 +1,12 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Optional;
@@ -11,33 +14,45 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    
+
     @Autowired
     private ClienteService clienteService;
-    
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${ADMIN_EMAIL:admin@inkflow.com}")
+    private String adminEmail;
+
+    @Value("${ADMIN_PASSWORD_HASH:}")
+    private String adminPasswordHash;
+
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
         String email = loginData.get("email");
         String password = loginData.get("password");
-        
+
         // Login admin
-        if ("admin@inkflow.com".equals(email) && "admin123".equals(password)) {
+        if (adminEmail.equals(email) && !adminPasswordHash.isBlank()
+                && passwordEncoder.matches(password, adminPasswordHash)) {
+            String token = jwtUtil.generateToken(email, true);
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "user", Map.of(
-                    "id", 0,
-                    "email", email,
-                    "nome", "Administrador",
-                    "isAdmin", true
-                )
+                "token", token,
+                "user", Map.of("id", 0, "email", email, "nome", "Administrador", "isAdmin", true)
             ));
         }
-        
+
         // Login cliente
         Optional<Cliente> cliente = clienteService.getUserByEmail(email);
-        if (cliente.isPresent() && cliente.get().getPassword().equals(password)) {
+        if (cliente.isPresent() && passwordEncoder.matches(password, cliente.get().getPassword())) {
+            String token = jwtUtil.generateToken(email, false);
             return ResponseEntity.ok(Map.of(
                 "success", true,
+                "token", token,
                 "user", Map.of(
                     "id", cliente.get().getId(),
                     "email", cliente.get().getEmail(),
@@ -46,7 +61,7 @@ public class AuthController {
                 )
             ));
         }
-        
+
         return ResponseEntity.badRequest().body(Map.of(
             "success", false,
             "message", "Email ou senha incorretos"

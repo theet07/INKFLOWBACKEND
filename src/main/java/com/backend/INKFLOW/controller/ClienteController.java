@@ -45,7 +45,7 @@ public class ClienteController {
                     existingCliente.setFullName(cliente.getFullName());
                     existingCliente.setTelefone(cliente.getTelefone());
                     existingCliente.setProfileImage(cliente.getProfileImage());
-                    return ResponseEntity.ok(clienteService.saveCliente(existingCliente));
+                    return ResponseEntity.ok(clienteService.updateCliente(existingCliente));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }

@@ -35,10 +35,13 @@ public class JwtFilter extends OncePerRequestFilter {
                 var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Token inválido ou expirado\"}");
-                return;
+                String path = request.getRequestURI();
+                if (!path.startsWith("/api/auth") && !path.equals("/ping") && !path.equals("/api/health") && !path.startsWith("/api/artistas")) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Token inválido ou expirado\"}");
+                    return;
+                }
             }
         }
 

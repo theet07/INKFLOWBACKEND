@@ -14,7 +14,7 @@ public class ArtistaService {
     private ArtistaRepository artistaRepository;
 
     public List<Artista> getAll() {
-        return artistaRepository.findByAtivoTrue();
+        return artistaRepository.findAll();
     }
 
     public Optional<Artista> getById(Integer id) {

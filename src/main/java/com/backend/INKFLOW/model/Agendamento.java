@@ -6,56 +6,76 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "agendamentos")
 public class Agendamento {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
-    
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "artista_id")
+    private Artista artista;
+
     @Column(nullable = false)
     private LocalDateTime dataHora;
-    
+
     private String servico;
     private String descricao;
     private String status = "AGENDADO";
     private Double preco;
-    
+    private Integer avaliacao;
+    private String observacoes;
+
+    @Column(name = "valor_pago")
+    private Double valorPago;
+
+    @Column(name = "valor_pendente")
+    private Double valorPendente;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
-    
-    // Constructors
+
     public Agendamento() {}
-    
-    public Agendamento(Cliente cliente, LocalDateTime dataHora, String servico) {
-        this.cliente = cliente;
-        this.dataHora = dataHora;
-        this.servico = servico;
-    }
-    
-    // Getters and Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    
+
     public Cliente getCliente() { return cliente; }
     public void setCliente(Cliente cliente) { this.cliente = cliente; }
-    
+
+    public Artista getArtista() { return artista; }
+    public void setArtista(Artista artista) { this.artista = artista; }
+
     public LocalDateTime getDataHora() { return dataHora; }
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
-    
+
     public String getServico() { return servico; }
     public void setServico(String servico) { this.servico = servico; }
-    
+
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
-    
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-    
+
     public Double getPreco() { return preco; }
     public void setPreco(Double preco) { this.preco = preco; }
-    
+
+    public Integer getAvaliacao() { return avaliacao; }
+    public void setAvaliacao(Integer avaliacao) { this.avaliacao = avaliacao; }
+
+    public String getObservacoes() { return observacoes; }
+    public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
+
+    public Double getValorPago() { return valorPago; }
+    public void setValorPago(Double valorPago) { this.valorPago = valorPago; }
+
+    public Double getValorPendente() { return valorPendente; }
+    public void setValorPendente(Double valorPendente) { this.valorPendente = valorPendente; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

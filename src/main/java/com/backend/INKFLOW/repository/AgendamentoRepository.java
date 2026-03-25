@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
     List<Agendamento> findByCliente(Cliente cliente);
+    List<Agendamento> findByClienteId(Long clienteId);
     List<Agendamento> findByStatus(String status);
     List<Agendamento> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
     List<Agendamento> findAllByOrderByDataHoraAsc();

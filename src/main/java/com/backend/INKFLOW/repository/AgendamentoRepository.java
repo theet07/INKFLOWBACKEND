@@ -3,6 +3,9 @@ package com.backend.INKFLOW.repository;
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,4 +16,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     List<Agendamento> findByStatus(String status);
     List<Agendamento> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
     List<Agendamento> findAllByOrderByDataHoraAsc();
+    
+    @Modifying
+    @Query("DELETE FROM Agendamento a WHERE a.cliente.id = :clienteId")
+    void deleteByClienteId(@Param("clienteId") Long clienteId);
 }

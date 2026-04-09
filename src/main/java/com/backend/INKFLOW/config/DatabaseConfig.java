@@ -11,93 +11,104 @@ public class DatabaseConfig {
 
     @Bean
     public DataSource dataSource() {
-        // Tentar múltiplas variáveis de ambiente
+
+        // ============================================================
+        // ESTRATÉGIA 1: Variáveis separadas (DB_URL + DB_USERNAME + DB_PASSWORD)
+        // Essas são as que existem no Render do INKFLOW
+        // ============================================================
+        String dbUrl = getEnvOrNull("DB_URL");
+        String dbUsername = getEnvOrNull("DB_USERNAME");
+        String dbPassword = getEnvOrNull("DB_PASSWORD");
+
+        if (dbUrl != null) {
+            System.out.println(">>> Usando DB_URL + DB_USERNAME + DB_PASSWORD");
+
+            // Garantir que a URL começa com jdbc:postgresql://
+            if (!dbUrl.startsWith("jdbc:")) {
+                if (dbUrl.startsWith("postgres://")) {
+                    dbUrl = "jdbc:postgresql://" + dbUrl.substring("postgres://".length());
+                } else if (dbUrl.startsWith("postgresql://")) {
+                    dbUrl = "jdbc:" + dbUrl;
+                } else {
+                    // Assumir que é host:port/db
+                    dbUrl = "jdbc:postgresql://" + dbUrl;
+                }
+            }
+
+            // Adicionar sslmode se não presente
+            if (!dbUrl.contains("sslmode")) {
+                dbUrl += (dbUrl.contains("?") ? "&" : "?") + "sslmode=require";
+            }
+
+            System.out.println(">>> JDBC URL: " + dbUrl);
+            System.out.println(">>> Username: " + (dbUsername != null ? dbUsername : "NULL"));
+
+            DataSourceBuilder<?> builder = DataSourceBuilder.create()
+                    .url(dbUrl)
+                    .driverClassName("org.postgresql.Driver");
+
+            if (dbUsername != null) builder.username(dbUsername);
+            if (dbPassword != null) builder.password(dbPassword);
+
+            return builder.build();
+        }
+
+        // ============================================================
+        // ESTRATÉGIA 2: URL combinada (DATABASE_URL no formato postgres://user:pass@host:port/db)
+        // ============================================================
         String databaseUrl = getEnvOrNull("DATABASE_URL");
         if (databaseUrl == null) databaseUrl = getEnvOrNull("DATABASE_INTERNAL_URL");
         if (databaseUrl == null) databaseUrl = getEnvOrNull("DATABASE_EXTERNAL_URL");
         if (databaseUrl == null) databaseUrl = getEnvOrNull("SPRING_DATASOURCE_URL");
 
         if (databaseUrl != null) {
-            System.out.println(">>> DATABASE_URL encontrada (comprimento: " + databaseUrl.length() + ")");
-            
+            System.out.println(">>> Usando DATABASE_URL combinada (comprimento: " + databaseUrl.length() + ")");
+
             // Se já for JDBC, usar diretamente
             if (databaseUrl.startsWith("jdbc:")) {
-                System.out.println(">>> Formato JDBC detectado, usando diretamente");
-                return buildFromJdbcUrl(databaseUrl);
+                System.out.println(">>> Formato JDBC direto");
+                return DataSourceBuilder.create()
+                        .url(databaseUrl)
+                        .driverClassName("org.postgresql.Driver")
+                        .build();
             }
 
-            // Parsing manual para postgres:// ou postgresql://
-            // Formato esperado: postgres://USER:PASSWORD@HOST:PORT/DATABASE
+            // Parsing manual: postgres://USER:PASSWORD@HOST:PORT/DATABASE
             try {
                 String url = databaseUrl;
 
-                // Remover prefixo do protocolo
                 if (url.startsWith("postgres://")) {
                     url = url.substring("postgres://".length());
                 } else if (url.startsWith("postgresql://")) {
                     url = url.substring("postgresql://".length());
                 } else {
-                    System.err.println(">>> Formato desconhecido: " + databaseUrl.substring(0, Math.min(20, databaseUrl.length())) + "...");
-                    throw new RuntimeException("Formato de DATABASE_URL não reconhecido");
+                    throw new RuntimeException("Formato de DATABASE_URL não reconhecido: " + url.substring(0, Math.min(15, url.length())));
                 }
 
-                // Separar credenciais do host: USER:PASSWORD@HOST:PORT/DATABASE
-                // O último @ separa credenciais do host (importante se a senha contém @)
                 int lastAtSign = url.lastIndexOf('@');
                 if (lastAtSign < 0) {
-                    throw new RuntimeException("DATABASE_URL não contém '@' para separar credenciais do host");
+                    throw new RuntimeException("DATABASE_URL sem '@' para separar credenciais do host");
                 }
 
                 String credentials = url.substring(0, lastAtSign);
                 String hostPortDb = url.substring(lastAtSign + 1);
 
-                // Extrair username e password (primeiro : separa)
                 int colonIndex = credentials.indexOf(':');
                 String username = colonIndex > 0 ? credentials.substring(0, colonIndex) : credentials;
                 String password = colonIndex > 0 ? credentials.substring(colonIndex + 1) : "";
 
-                // Extrair host, port e database de hostPortDb
-                // Formato: HOST:PORT/DATABASE ou HOST:PORT/DATABASE?params
-                String host;
-                String port;
-                String database;
+                // Extrair query params
                 String queryParams = null;
-
-                // Verificar se tem query params
                 int questionMark = hostPortDb.indexOf('?');
                 if (questionMark > 0) {
                     queryParams = hostPortDb.substring(questionMark + 1);
                     hostPortDb = hostPortDb.substring(0, questionMark);
                 }
 
-                // Separar host:port/database
-                int slashIndex = hostPortDb.indexOf('/');
-                String hostPort;
-                if (slashIndex > 0) {
-                    hostPort = hostPortDb.substring(0, slashIndex);
-                    database = hostPortDb.substring(slashIndex + 1);
-                } else {
-                    hostPort = hostPortDb;
-                    database = "";
-                }
-
-                int portColon = hostPort.indexOf(':');
-                if (portColon > 0) {
-                    host = hostPort.substring(0, portColon);
-                    port = hostPort.substring(portColon + 1);
-                } else {
-                    host = hostPort;
-                    port = "5432";
-                }
-
-                // Construir URL JDBC
+                // Construir JDBC URL
                 StringBuilder jdbcUrl = new StringBuilder("jdbc:postgresql://");
-                jdbcUrl.append(host).append(":").append(port);
-                if (!database.isEmpty()) {
-                    jdbcUrl.append("/").append(database);
-                }
+                jdbcUrl.append(hostPortDb);
 
-                // Adicionar SSL
                 if (queryParams != null && !queryParams.isEmpty()) {
                     jdbcUrl.append("?").append(queryParams);
                     if (!queryParams.contains("sslmode")) {
@@ -107,15 +118,11 @@ public class DatabaseConfig {
                     jdbcUrl.append("?sslmode=require");
                 }
 
-                String finalUrl = jdbcUrl.toString();
-                System.out.println(">>> Host: " + host);
-                System.out.println(">>> Port: " + port);
-                System.out.println(">>> DB: " + database);
-                System.out.println(">>> User: " + username);
-                System.out.println(">>> JDBC URL: " + finalUrl);
+                System.out.println(">>> JDBC URL: " + jdbcUrl);
+                System.out.println(">>> Username: " + username);
 
                 return DataSourceBuilder.create()
-                        .url(finalUrl)
+                        .url(jdbcUrl.toString())
                         .username(username)
                         .password(password)
                         .driverClassName("org.postgresql.Driver")
@@ -123,19 +130,17 @@ public class DatabaseConfig {
 
             } catch (Exception e) {
                 System.err.println(">>> ERRO ao parsear DATABASE_URL: " + e.getMessage());
-                e.printStackTrace();
-                throw new RuntimeException("Falha ao configurar DataSource a partir da DATABASE_URL", e);
+                throw new RuntimeException("Falha ao configurar DataSource", e);
             }
         }
 
-        // Nenhuma variável encontrada
+        // ============================================================
+        // FALLBACK: Desenvolvimento local
+        // ============================================================
         System.err.println("==========================================");
-        System.err.println(">>> ERRO CRITICO: Nenhuma DATABASE_URL encontrada!");
-        System.err.println(">>>   DATABASE_URL = " + (System.getenv("DATABASE_URL") != null ? "DEFINIDA" : "NULL"));
-        System.err.println(">>>   DATABASE_INTERNAL_URL = " + (System.getenv("DATABASE_INTERNAL_URL") != null ? "DEFINIDA" : "NULL"));
-        System.err.println(">>>   DATABASE_EXTERNAL_URL = " + (System.getenv("DATABASE_EXTERNAL_URL") != null ? "DEFINIDA" : "NULL"));
-        System.err.println(">>>   SPRING_DATASOURCE_URL = " + (System.getenv("SPRING_DATASOURCE_URL") != null ? "DEFINIDA" : "NULL"));
-        System.err.println(">>> Usando fallback localhost (vai falhar no Render!)");
+        System.err.println(">>> NENHUMA variável de banco encontrada!");
+        System.err.println(">>> Checadas: DB_URL, DATABASE_URL, DATABASE_INTERNAL_URL");
+        System.err.println(">>> Usando fallback localhost:5432");
         System.err.println("==========================================");
 
         return DataSourceBuilder.create()
@@ -144,22 +149,6 @@ public class DatabaseConfig {
                 .password("postgres")
                 .driverClassName("org.postgresql.Driver")
                 .build();
-    }
-
-    private DataSource buildFromJdbcUrl(String jdbcUrl) {
-        DataSourceBuilder<?> builder = DataSourceBuilder.create()
-                .url(jdbcUrl)
-                .driverClassName("org.postgresql.Driver");
-
-        String username = getEnvOrNull("DATABASE_USERNAME");
-        if (username == null) username = getEnvOrNull("SPRING_DATASOURCE_USERNAME");
-        String password = getEnvOrNull("DATABASE_PASSWORD");
-        if (password == null) password = getEnvOrNull("SPRING_DATASOURCE_PASSWORD");
-
-        if (username != null) builder.username(username);
-        if (password != null) builder.password(password);
-
-        return builder.build();
     }
 
     private String getEnvOrNull(String name) {

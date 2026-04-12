@@ -38,12 +38,19 @@ public class Agendamento {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "regiao", length = 100, nullable = true)
     private String regiao;
+
+    @Column(name = "largura", nullable = true)
     private Double largura;
+
+    @Column(name = "altura", nullable = true)
     private Double altura;
+
+    @Column(name = "tags", length = 500, nullable = true)
     private String tags;
 
-    @Column(name = "imagem_referencia_url", length = 1000)
+    @Column(name = "imagem_referencia_url", length = 1000, nullable = true)
     private String imagemReferenciaUrl;
 
     public Agendamento() {}

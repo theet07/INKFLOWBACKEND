@@ -4,6 +4,8 @@ import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,9 @@ public class ClienteService {
     
     @Autowired
     private AgendamentoRepository agendamentoRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
     
     public List<Cliente> getAllClientes() {
         return clienteRepository.findAll();
@@ -58,6 +63,7 @@ public class ClienteService {
             agendamentoRepository.deleteAllInBatch(agendamentos);
         }
         clienteRepository.deleteById(id);
+        entityManager.flush();
     }
     
     public Optional<Cliente> getUserByEmail(String email) {

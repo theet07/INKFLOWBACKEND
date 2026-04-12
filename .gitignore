@@ -35,3 +35,4 @@ build/
 ### Local ###
 .env
 run.ps1
+*.env

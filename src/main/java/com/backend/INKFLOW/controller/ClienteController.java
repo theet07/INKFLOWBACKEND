@@ -2,9 +2,11 @@ package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.service.ClienteService;
+import com.backend.INKFLOW.service.FotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +17,9 @@ public class ClienteController {
     
     @Autowired
     private ClienteService clienteService;
+
+    @Autowired
+    private FotoService fotoService;
     
     @GetMapping
     public List<Cliente> getAllClientes() {
@@ -62,5 +67,40 @@ public class ClienteController {
     public ResponseEntity<Void> deleteCliente(@PathVariable Long id) {
         clienteService.deleteCliente(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        return clienteService.getClienteById(id).map(cliente -> {
+            try {
+                if (cliente.getProfileImage() != null) {
+                    String oldPublicId = fotoService.extractPublicId(cliente.getProfileImage());
+                    if (oldPublicId != null) fotoService.delete(oldPublicId);
+                }
+                String url = fotoService.upload(file, "cliente_" + id);
+                cliente.setProfileImage(url);
+                clienteService.saveCliente(cliente);
+                return ResponseEntity.ok(Map.of("fotoUrl", url));
+            } catch (Exception e) {
+                return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao fazer upload da foto."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/foto")
+    public ResponseEntity<?> deleteFoto(@PathVariable Long id) {
+        return clienteService.getClienteById(id).map(cliente -> {
+            try {
+                if (cliente.getProfileImage() != null) {
+                    String oldPublicId = fotoService.extractPublicId(cliente.getProfileImage());
+                    if (oldPublicId != null) fotoService.delete(oldPublicId);
+                    cliente.setProfileImage(null);
+                    clienteService.saveCliente(cliente);
+                }
+                return ResponseEntity.ok(Map.of("message", "Foto removida."));
+            } catch (Exception e) {
+                return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao remover foto."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

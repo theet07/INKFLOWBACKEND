@@ -9,11 +9,15 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/clientes")
 @CrossOrigin(origins = {"https://inkflowfrontend.vercel.app", "http://localhost:5173"})
 public class ClienteController {
+
+    private static final Logger log = LoggerFactory.getLogger(ClienteController.class);
     
     @Autowired
     private ClienteService clienteService;
@@ -82,6 +86,7 @@ public class ClienteController {
                 clienteService.saveCliente(cliente);
                 return ResponseEntity.ok(Map.of("fotoUrl", url));
             } catch (Exception e) {
+                log.error("Erro ao fazer upload da foto para cliente {}: {}", id, e.getMessage(), e);
                 return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao fazer upload da foto."));
             }
         }).orElse(ResponseEntity.notFound().build());
@@ -99,6 +104,7 @@ public class ClienteController {
                 }
                 return ResponseEntity.ok(Map.of("message", "Foto removida."));
             } catch (Exception e) {
+                log.error("Erro ao remover foto do cliente {}: {}", id, e.getMessage(), e);
                 return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao remover foto."));
             }
         }).orElse(ResponseEntity.notFound().build());

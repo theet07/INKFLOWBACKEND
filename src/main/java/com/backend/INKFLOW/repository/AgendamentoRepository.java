@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,7 +20,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     List<Agendamento> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
     List<Agendamento> findAllByOrderByDataHoraAsc();
     
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("DELETE FROM Agendamento a WHERE a.cliente.id = :clienteId")
     void deleteByClienteId(@Param("clienteId") Long clienteId);
 }

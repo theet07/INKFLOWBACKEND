@@ -1,7 +1,6 @@
 package com.backend.INKFLOW.service;
 
 import com.backend.INKFLOW.model.Cliente;
-import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
 import jakarta.persistence.EntityManager;
@@ -58,12 +57,12 @@ public class ClienteService {
     
     @Transactional
     public void deleteCliente(Long id) {
-        List<Agendamento> agendamentos = agendamentoRepository.findByClienteId(id);
-        if (!agendamentos.isEmpty()) {
-            agendamentoRepository.deleteAllInBatch(agendamentos);
-        }
-        clienteRepository.deleteById(id);
-        entityManager.flush();
+        entityManager.createNativeQuery("DELETE FROM agendamentos WHERE cliente_id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
+        entityManager.createNativeQuery("DELETE FROM clientes WHERE id = :id")
+                .setParameter("id", id)
+                .executeUpdate();
     }
     
     public Optional<Cliente> getUserByEmail(String email) {

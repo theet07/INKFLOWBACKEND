@@ -38,6 +38,14 @@ public class Agendamento {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    private String regiao;
+    private Double largura;
+    private Double altura;
+    private String tags;
+
+    @Column(name = "imagem_referencia_url", length = 1000)
+    private String imagemReferenciaUrl;
+
     public Agendamento() {}
 
     public Long getId() { return id; }
@@ -78,4 +86,19 @@ public class Agendamento {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getRegiao() { return regiao; }
+    public void setRegiao(String regiao) { this.regiao = regiao; }
+
+    public Double getLargura() { return largura; }
+    public void setLargura(Double largura) { this.largura = largura; }
+
+    public Double getAltura() { return altura; }
+    public void setAltura(Double altura) { this.altura = altura; }
+
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
+
+    public String getImagemReferenciaUrl() { return imagemReferenciaUrl; }
+    public void setImagemReferenciaUrl(String imagemReferenciaUrl) { this.imagemReferenciaUrl = imagemReferenciaUrl; }
 }

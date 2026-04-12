@@ -32,6 +32,11 @@ public class AgendamentoController {
         return agendamentoService.getAgendamentosByClienteId(clienteId);
     }
 
+    @GetMapping("/artista/{artistaId}")
+    public List<Agendamento> getByArtista(@PathVariable Integer artistaId) {
+        return agendamentoService.getAgendamentosByArtistaId(artistaId);
+    }
+
     @GetMapping("/status/{status}")
     public List<Agendamento> getAgendamentosByStatus(@PathVariable String status) {
         return agendamentoService.getAgendamentosByStatus(status);

@@ -21,6 +21,10 @@ public class ArtistaService {
         return artistaRepository.findById(id);
     }
 
+    public Optional<Artista> getByEmail(String email) {
+        return artistaRepository.findByEmail(email);
+    }
+
     public Artista save(Artista artista) {
         return artistaRepository.save(artista);
     }

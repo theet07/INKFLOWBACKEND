@@ -1,7 +1,9 @@
 package com.backend.INKFLOW.controller;
 
+import com.backend.INKFLOW.model.Artista;
 import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.security.JwtUtil;
+import com.backend.INKFLOW.service.ArtistaService;
 import com.backend.INKFLOW.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +19,9 @@ public class AuthController {
 
     @Autowired
     private ClienteService clienteService;
+
+    @Autowired
+    private ArtistaService artistaService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -43,6 +48,22 @@ public class AuthController {
                 "success", true,
                 "token", token,
                 "user", Map.of("id", 0, "email", email, "nome", "Administrador", "isAdmin", true)
+            ));
+        }
+
+        // Login tatuador
+        Optional<Artista> artista = artistaService.getByEmail(email);
+        if (artista.isPresent() && passwordEncoder.matches(password, artista.get().getPassword())) {
+            String token = jwtUtil.generateToken(email, false);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "token", token,
+                "user", Map.of(
+                    "id", artista.get().getId(),
+                    "email", artista.get().getEmail(),
+                    "nome", artista.get().getNome(),
+                    "isArtist", true
+                )
             ));
         }
 

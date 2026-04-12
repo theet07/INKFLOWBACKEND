@@ -21,6 +21,12 @@ public class Artista {
 
     private Boolean ativo = true;
 
+    @Column(unique = true)
+    private String email;
+
+    @Column(name = "senha")
+    private String password;
+
     public Artista() {}
 
     public Integer getId() { return id; }
@@ -40,4 +46,10 @@ public class Artista {
 
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 }

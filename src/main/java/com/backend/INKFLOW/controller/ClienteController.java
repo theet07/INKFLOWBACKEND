@@ -68,9 +68,14 @@ public class ClienteController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCliente(@PathVariable Long id) {
-        clienteService.deleteCliente(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> deleteCliente(@PathVariable Long id) {
+        try {
+            clienteService.deleteCliente(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Erro ao deletar cliente {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente: " + e.getMessage()));
+        }
     }
 
     @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")

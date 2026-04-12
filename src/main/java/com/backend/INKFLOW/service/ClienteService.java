@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.service;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +53,10 @@ public class ClienteService {
     
     @Transactional
     public void deleteCliente(Long id) {
-        // Primeiro, excluir todos os agendamentos do cliente
-        agendamentoRepository.deleteByClienteId(id);
-        // Depois, excluir o cliente
+        List<Agendamento> agendamentos = agendamentoRepository.findByClienteId(id);
+        if (!agendamentos.isEmpty()) {
+            agendamentoRepository.deleteAllInBatch(agendamentos);
+        }
         clienteRepository.deleteById(id);
     }
     

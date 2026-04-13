@@ -1,6 +1,6 @@
 package com.backend.INKFLOW.controller;
 
-import com.backend.INKFLOW.model.Artista;
+import com.backend.INKFLOW.model.ArtistaVitrine;
 import com.backend.INKFLOW.service.ArtistaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +15,16 @@ public class ArtistaController {
     private ArtistaService artistaService;
 
     @GetMapping
-    public List<Artista> getAll() {
-        return artistaService.getAll();
+    public List<ArtistaVitrine> getAll() {
+        return artistaService.getAll().stream()
+                .map(ArtistaVitrine::new)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Artista> getById(@PathVariable Integer id) {
+    public ResponseEntity<ArtistaVitrine> getById(@PathVariable Integer id) {
         return artistaService.getById(id)
+                .map(ArtistaVitrine::new)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

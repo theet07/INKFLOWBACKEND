@@ -56,6 +56,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ping", "/api/health").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/artistas").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/artistas/*").permitAll()
 
                 // Rotas exclusivas de ADMIN
                 .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")

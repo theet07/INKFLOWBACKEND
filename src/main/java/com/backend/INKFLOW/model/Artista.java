@@ -16,6 +16,9 @@ public class Artista {
     private String role;
     private String especialidades;
 
+    @Column(length = 500)
+    private String bio;
+
     @Column(name = "foto_url")
     private String fotoUrl;
 
@@ -40,6 +43,9 @@ public class Artista {
 
     public String getEspecialidades() { return especialidades; }
     public void setEspecialidades(String especialidades) { this.especialidades = especialidades; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }

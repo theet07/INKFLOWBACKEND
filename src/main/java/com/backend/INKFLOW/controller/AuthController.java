@@ -1,12 +1,13 @@
 package com.backend.INKFLOW.controller;
 
+import com.backend.INKFLOW.model.Admin;
 import com.backend.INKFLOW.model.Artista;
 import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.security.JwtUtil;
+import com.backend.INKFLOW.service.AdminService;
 import com.backend.INKFLOW.service.ArtistaService;
 import com.backend.INKFLOW.service.ClienteService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,9 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Autowired
+    private AdminService adminService;
 
     @Autowired
     private ClienteService clienteService;
@@ -29,25 +33,25 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Value("${ADMIN_EMAIL:admin@inkflow.com}")
-    private String adminEmail;
-
-    @Value("${ADMIN_PASSWORD_HASH:}")
-    private String adminPasswordHash;
-
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
         String email = loginData.get("email");
         String password = loginData.get("password");
 
         // Login admin
-        if (adminEmail.equals(email) && !adminPasswordHash.isBlank()
-                && passwordEncoder.matches(password, adminPasswordHash)) {
+        Optional<Admin> admin = adminService.getByEmail(email);
+        if (admin.isPresent() && passwordEncoder.matches(password, admin.get().getPassword())) {
             String token = jwtUtil.generateToken(email, "ROLE_ADMIN");
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", token,
-                "user", Map.of("id", 0, "email", email, "nome", "Administrador", "isAdmin", true, "role", "ROLE_ADMIN")
+                "user", Map.of(
+                    "id", admin.get().getId(),
+                    "email", admin.get().getEmail(),
+                    "nome", admin.get().getNome(),
+                    "isAdmin", true,
+                    "role", "ROLE_ADMIN"
+                )
             ));
         }
 

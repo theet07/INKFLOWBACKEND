@@ -40,6 +40,15 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (jwtUtil.validateToken(token)) {
                     String email = jwtUtil.extractEmail(token);
                     String role = jwtUtil.extractRole(token);
+
+                    if (role == null || role.isBlank()) {
+                        log.warn("Token valido mas sem role definida para o email: {}", email);
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.getWriter().write("{\"error\": \"Token sem permissao definida. Faca login novamente.\"}" );
+                        return;
+                    }
+
                     var authority = new SimpleGrantedAuthority(role);
                     var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
                     SecurityContextHolder.getContext().setAuthentication(auth);

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -59,34 +60,29 @@ public class AuthController {
         Optional<Artista> artista = artistaService.getByEmail(email);
         if (artista.isPresent() && passwordEncoder.matches(password, artista.get().getPassword())) {
             String token = jwtUtil.generateToken(email, "ROLE_ARTISTA");
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "token", token,
-                "user", Map.of(
-                    "id", artista.get().getId(),
-                    "email", artista.get().getEmail(),
-                    "nome", artista.get().getNome(),
-                    "isArtist", true,
-                    "role", "ROLE_ARTISTA"
-                )
-            ));
+            Map<String, Object> artistaUser = new HashMap<>();
+            artistaUser.put("id", artista.get().getId());
+            artistaUser.put("email", artista.get().getEmail());
+            artistaUser.put("nome", artista.get().getNome());
+            artistaUser.put("fotoUrl", artista.get().getFotoUrl());
+            artistaUser.put("isArtist", true);
+            artistaUser.put("role", "ROLE_ARTISTA");
+            return ResponseEntity.ok(Map.of("success", true, "token", token, "user", artistaUser));
         }
 
         // Login cliente
         Optional<Cliente> cliente = clienteService.getUserByEmail(email);
         if (cliente.isPresent() && passwordEncoder.matches(password, cliente.get().getPassword())) {
             String token = jwtUtil.generateToken(email, "ROLE_CLIENTE");
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "token", token,
-                "user", Map.of(
-                    "id", cliente.get().getId(),
-                    "email", cliente.get().getEmail(),
-                    "nome", cliente.get().getFullName(),
-                    "isAdmin", false,
-                    "role", "ROLE_CLIENTE"
-                )
-            ));
+            Map<String, Object> clienteUser = new HashMap<>();
+            clienteUser.put("id", cliente.get().getId());
+            clienteUser.put("email", cliente.get().getEmail());
+            clienteUser.put("nome", cliente.get().getFullName());
+            clienteUser.put("telefone", cliente.get().getTelefone());
+            clienteUser.put("fotoUrl", cliente.get().getProfileImage());
+            clienteUser.put("isAdmin", false);
+            clienteUser.put("role", "ROLE_CLIENTE");
+            return ResponseEntity.ok(Map.of("success", true, "token", token, "user", clienteUser));
         }
 
         return ResponseEntity.badRequest().body(Map.of(

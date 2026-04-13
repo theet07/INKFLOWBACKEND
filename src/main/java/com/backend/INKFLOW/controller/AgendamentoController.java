@@ -50,7 +50,11 @@ public class AgendamentoController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Agendamento> updateStatus(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         String status = (String) body.get("status");
-        Integer avaliacao = body.get("avaliacao") != null ? (Integer) body.get("avaliacao") : null;
+        Integer avaliacao = null;
+        Object avaliacaoRaw = body.get("avaliacao");
+        if (avaliacaoRaw instanceof Number) {
+            avaliacao = ((Number) avaliacaoRaw).intValue();
+        }
         String observacoes = (String) body.get("observacoes");
         return agendamentoService.updateStatus(id, status, avaliacao, observacoes)
                 .map(ResponseEntity::ok)

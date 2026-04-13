@@ -4,7 +4,10 @@ import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.service.AgendamentoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -48,16 +51,50 @@ public class AgendamentoController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<Agendamento> updateStatus(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        String status = (String) body.get("status");
+    public ResponseEntity<?> updateStatus(@PathVariable Long id,
+                                          @RequestBody Map<String, Object> body,
+                                          Authentication auth) {
+        String novoStatus = (String) body.get("status");
         Integer avaliacao = null;
         Object avaliacaoRaw = body.get("avaliacao");
         if (avaliacaoRaw instanceof Number) {
             avaliacao = ((Number) avaliacaoRaw).intValue();
         }
         String observacoes = (String) body.get("observacoes");
-        return agendamentoService.updateStatus(id, status, avaliacao, observacoes)
-                .map(ResponseEntity::ok)
+
+        boolean isCliente = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE"));
+
+        if (isCliente) {
+            // Busca o agendamento para validar
+            Agendamento ag = agendamentoService.getAgendamentoById(id).orElse(null);
+            if (ag == null) return ResponseEntity.notFound().build();
+
+            // Ownership: email do token deve bater com o email do cliente do agendamento
+            String emailToken = auth.getName();
+            if (!emailToken.equals(ag.getCliente().getEmail())) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Você não tem permissão para alterar este agendamento."));
+            }
+
+            // Cliente não pode marcar como REALIZADO
+            if ("REALIZADO".equals(novoStatus)) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Apenas o artista ou administrador pode marcar uma sessão como realizada."));
+            }
+
+            // Cancelamento com menos de 24h de antecedência é bloqueado
+            if ("CANCELADO".equals(novoStatus)) {
+                long horasRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), ag.getDataHora());
+                if (horasRestantes < 24) {
+                    return ResponseEntity.status(422)
+                            .body(Map.of("message", "Cancelamento não permitido. Faltam menos de 24 horas para a sessão. Entre em contato com o estúdio."));
+                }
+            }
+        }
+
+        return agendamentoService.updateStatus(id, novoStatus, avaliacao, observacoes)
+                .map(updated -> (ResponseEntity<?>) ResponseEntity.ok(updated))
                 .orElse(ResponseEntity.notFound().build());
     }
 

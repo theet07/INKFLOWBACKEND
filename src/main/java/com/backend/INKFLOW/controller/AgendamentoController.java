@@ -83,6 +83,18 @@ public class AgendamentoController {
                         .body(Map.of("message", "Apenas o artista ou administrador pode marcar uma sessão como realizada."));
             }
 
+            // Finalização: cliente pode mover de REALIZADO para FINALIZADO com avaliação obrigatória
+            if ("FINALIZADO".equals(novoStatus)) {
+                if (!"REALIZADO".equals(ag.getStatus())) {
+                    return ResponseEntity.status(422)
+                            .body(Map.of("message", "Só é possível finalizar uma sessão que já foi marcada como realizada pelo artista."));
+                }
+                if (avaliacao == null || avaliacao < 1 || avaliacao > 5) {
+                    return ResponseEntity.status(422)
+                            .body(Map.of("message", "Uma avaliação de 1 a 5 é obrigatória para finalizar a sessão."));
+                }
+            }
+
             // Cancelamento com menos de 24h de antecedência é bloqueado
             if ("CANCELADO".equals(novoStatus)) {
                 long horasRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), ag.getDataHora());

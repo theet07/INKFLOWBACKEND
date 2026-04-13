@@ -55,12 +55,25 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ping", "/api/health").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
+
+                // Rotas exclusivas de ADMIN
                 .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/clientes").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/agendamentos/{id}").hasAnyRole("ADMIN")
+
+                // Rotas exclusivas de ARTISTA ou ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/agendamentos").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/agendamentos/artista/{artistaId}").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/agendamentos/status/{status}").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/agendamentos/{id}").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/agendamentos/{id}/status").hasAnyRole("ARTISTA", "ADMIN", "CLIENTE")
+
+                // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/clientes/email/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/*/foto").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/clientes/*/foto").authenticated()
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

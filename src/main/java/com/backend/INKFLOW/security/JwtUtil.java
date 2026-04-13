@@ -21,10 +21,10 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String email, boolean isAdmin) {
+    public String generateToken(String email, String role) {
         return Jwts.builder()
                 .setSubject(email)
-                .claim("isAdmin", isAdmin)
+                .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
@@ -35,8 +35,8 @@ public class JwtUtil {
         return getClaims(token).getSubject();
     }
 
-    public boolean isAdmin(String token) {
-        return (Boolean) getClaims(token).get("isAdmin");
+    public String extractRole(String token) {
+        return (String) getClaims(token).get("role");
     }
 
     public boolean validateToken(String token) {

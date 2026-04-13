@@ -43,18 +43,18 @@ public class AuthController {
         // Login admin
         if (adminEmail.equals(email) && !adminPasswordHash.isBlank()
                 && passwordEncoder.matches(password, adminPasswordHash)) {
-            String token = jwtUtil.generateToken(email, true);
+            String token = jwtUtil.generateToken(email, "ROLE_ADMIN");
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", token,
-                "user", Map.of("id", 0, "email", email, "nome", "Administrador", "isAdmin", true)
+                "user", Map.of("id", 0, "email", email, "nome", "Administrador", "isAdmin", true, "role", "ROLE_ADMIN")
             ));
         }
 
         // Login tatuador
         Optional<Artista> artista = artistaService.getByEmail(email);
         if (artista.isPresent() && passwordEncoder.matches(password, artista.get().getPassword())) {
-            String token = jwtUtil.generateToken(email, false);
+            String token = jwtUtil.generateToken(email, "ROLE_ARTISTA");
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", token,
@@ -62,7 +62,8 @@ public class AuthController {
                     "id", artista.get().getId(),
                     "email", artista.get().getEmail(),
                     "nome", artista.get().getNome(),
-                    "isArtist", true
+                    "isArtist", true,
+                    "role", "ROLE_ARTISTA"
                 )
             ));
         }
@@ -70,7 +71,7 @@ public class AuthController {
         // Login cliente
         Optional<Cliente> cliente = clienteService.getUserByEmail(email);
         if (cliente.isPresent() && passwordEncoder.matches(password, cliente.get().getPassword())) {
-            String token = jwtUtil.generateToken(email, false);
+            String token = jwtUtil.generateToken(email, "ROLE_CLIENTE");
             return ResponseEntity.ok(Map.of(
                 "success", true,
                 "token", token,
@@ -78,7 +79,8 @@ public class AuthController {
                     "id", cliente.get().getId(),
                     "email", cliente.get().getEmail(),
                     "nome", cliente.get().getFullName(),
-                    "isAdmin", false
+                    "isAdmin", false,
+                    "role", "ROLE_CLIENTE"
                 )
             ));
         }

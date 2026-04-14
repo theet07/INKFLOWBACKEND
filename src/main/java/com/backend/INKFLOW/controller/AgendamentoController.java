@@ -1,7 +1,9 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Agendamento;
+import com.backend.INKFLOW.model.AgendamentoDashboard;
 import com.backend.INKFLOW.service.AgendamentoService;
+import com.backend.INKFLOW.service.ArtistaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,9 @@ public class AgendamentoController {
 
     @Autowired
     private AgendamentoService agendamentoService;
+
+    @Autowired
+    private ArtistaService artistaService;
 
     @GetMapping
     public List<Agendamento> getAllAgendamentos() {
@@ -36,8 +41,28 @@ public class AgendamentoController {
     }
 
     @GetMapping("/artista/{artistaId}")
-    public List<Agendamento> getByArtista(@PathVariable Integer artistaId) {
-        return agendamentoService.getAgendamentosByArtistaId(artistaId);
+    public ResponseEntity<?> getByArtista(@PathVariable Integer artistaId, Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            // Busca o artista pelo email do token e compara com o artistaId solicitado
+            boolean isOwner = artistaService.getByEmail(auth.getName())
+                    .map(a -> a.getId().equals(artistaId))
+                    .orElse(false);
+
+            if (!isOwner) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Você não tem permissão para ver os agendamentos deste artista."));
+            }
+        }
+
+        List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByArtistaId(artistaId)
+                .stream()
+                .map(AgendamentoDashboard::new)
+                .toList();
+
+        return ResponseEntity.ok(resultado);
     }
 
     @GetMapping("/status/{status}")

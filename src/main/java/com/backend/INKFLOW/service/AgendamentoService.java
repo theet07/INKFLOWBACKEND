@@ -32,7 +32,7 @@ public class AgendamentoService {
     }
 
     public List<Agendamento> getAgendamentosByArtistaId(Integer artistaId) {
-        return agendamentoRepository.findByArtistaId(artistaId);
+        return agendamentoRepository.findByArtistaIdOrderByDataHoraAsc(artistaId);
     }
 
     public List<Agendamento> getAgendamentosByStatus(String status) {

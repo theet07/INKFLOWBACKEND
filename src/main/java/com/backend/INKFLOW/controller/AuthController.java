@@ -62,6 +62,7 @@ public class AuthController {
             String token = jwtUtil.generateToken(email, "ROLE_ARTISTA");
             Map<String, Object> artistaUser = new HashMap<>();
             artistaUser.put("id", artista.get().getId());
+            artistaUser.put("artistaId", artista.get().getId());
             artistaUser.put("email", artista.get().getEmail());
             artistaUser.put("nome", artista.get().getNome());
             artistaUser.put("fotoUrl", artista.get().getFotoUrl());

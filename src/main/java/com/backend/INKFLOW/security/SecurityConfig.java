@@ -58,12 +58,17 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/artistas").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/artistas/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/portfolio/artista/*").permitAll()
 
                 // Rotas exclusivas de ADMIN
                 .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/clientes").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/admins").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/agendamentos/{id}").hasAnyRole("ADMIN")
+
+                // Rotas exclusivas de ARTISTA ou ADMIN
+                .requestMatchers(HttpMethod.POST, "/api/portfolio").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/portfolio/*").hasAnyRole("ARTISTA", "ADMIN")
 
                 // Rotas exclusivas de ARTISTA ou ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/agendamentos").hasAnyRole("ARTISTA", "ADMIN")

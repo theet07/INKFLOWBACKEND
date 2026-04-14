@@ -45,24 +45,30 @@ public class AgendamentoController {
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isAdmin) {
-            // Busca o artista pelo email do token e compara com o artistaId solicitado
-            boolean isOwner = artistaService.getByEmail(auth.getName())
-                    .map(a -> a.getId().equals(artistaId))
-                    .orElse(false);
-
-            if (!isOwner) {
-                return ResponseEntity.status(403)
-                        .body(Map.of("message", "Você não tem permissão para ver os agendamentos deste artista."));
-            }
+        if (isAdmin) {
+            // Admin pode buscar qualquer artista pelo ID da URL
+            List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByArtistaId(artistaId)
+                    .stream().map(AgendamentoDashboard::new).toList();
+            return ResponseEntity.ok(resultado);
         }
 
-        List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByArtistaId(artistaId)
-                .stream()
-                .map(AgendamentoDashboard::new)
-                .toList();
-
-        return ResponseEntity.ok(resultado);
+        // Para ROLE_ARTISTA: ignora o ID da URL completamente.
+        // Resolve o artista real pelo email extraido do token JWT.
+        return artistaService.getByEmail(auth.getName())
+                .map(artista -> {
+                    // Valida que o ID da URL bate com o ID real do token — protecao extra
+                    if (!artista.getId().equals(artistaId)) {
+                        return ResponseEntity.status(403)
+                                .<Object>body(Map.of("message", "Voce nao tem permissao para ver os agendamentos deste artista."));
+                    }
+                    // Busca usando o email do token, nunca o ID da URL
+                    List<AgendamentoDashboard> resultado = agendamentoService
+                            .getAgendamentosByArtistaEmail(auth.getName())
+                            .stream().map(AgendamentoDashboard::new).toList();
+                    return ResponseEntity.ok(resultado);
+                })
+                .orElse(ResponseEntity.status(403)
+                        .body(Map.of("message", "Artista nao encontrado para este token.")));
     }
 
     @GetMapping("/status/{status}")

@@ -35,6 +35,10 @@ public class AgendamentoService {
         return agendamentoRepository.findByArtistaIdOrderByDataHoraAsc(artistaId);
     }
 
+    public List<Agendamento> getAgendamentosByArtistaEmail(String email) {
+        return agendamentoRepository.findByArtistaEmailOrderByDataHoraAsc(email);
+    }
+
     public List<Agendamento> getAgendamentosByStatus(String status) {
         return agendamentoRepository.findByStatus(status);
     }

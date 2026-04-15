@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,7 +17,10 @@ public class AgendamentoDashboard {
     private Double largura;
     private Double altura;
     private List<String> tags;
+
+    @JsonProperty("imagemReferenciaUrl")
     private String imagemReferenciaUrl;
+
     private Double preco;
     private Double valorPago;
     private Double valorPendente;

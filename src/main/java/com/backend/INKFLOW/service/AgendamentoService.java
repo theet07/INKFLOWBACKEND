@@ -12,9 +12,12 @@ import java.util.Optional;
 @Service
 public class AgendamentoService {
 
+    private static final String CLOUDINARY_PREFIX = "https://res.cloudinary.com";
+
     @Autowired
     private AgendamentoRepository agendamentoRepository;
 
+    /** Retorna todos os agendamentos ordenados por data, para uso exclusivo do ADMIN. */
     public List<Agendamento> getAllAgendamentos() {
         return agendamentoRepository.findAllByOrderByDataHoraAsc();
     }
@@ -31,10 +34,19 @@ public class AgendamentoService {
         return agendamentoRepository.findByClienteId(clienteId);
     }
 
+    /**
+     * Busca agendamentos pelo ID do artista. Usado apenas pelo ADMIN,
+     * que pode consultar qualquer artista sem restricao de ownership.
+     */
     public List<Agendamento> getAgendamentosByArtistaId(Integer artistaId) {
         return agendamentoRepository.findByArtistaIdOrderByDataHoraAsc(artistaId);
     }
 
+    /**
+     * Busca agendamentos pelo e-mail do artista extraido diretamente do Token JWT.
+     * Este metodo e a fonte da verdade para o dashboard do artista — o ID da URL
+     * nunca e usado como parametro de consulta, prevenindo ataques IDOR.
+     */
     public List<Agendamento> getAgendamentosByArtistaEmail(String email) {
         return agendamentoRepository.findByArtistaEmailOrderByDataHoraAsc(email);
     }
@@ -47,7 +59,15 @@ public class AgendamentoService {
         return agendamentoRepository.findByDataHoraBetween(inicio, fim);
     }
 
+    /**
+     * Salva um agendamento. Valida que a imagemReferenciaUrl, se presente,
+     * pertence ao Cloudinary para evitar links externos maliciosos.
+     */
     public Agendamento saveAgendamento(Agendamento agendamento) {
+        String url = agendamento.getImagemReferenciaUrl();
+        if (url != null && !url.isBlank() && !url.startsWith(CLOUDINARY_PREFIX)) {
+            throw new IllegalArgumentException("imagemReferenciaUrl deve ser uma URL valida do Cloudinary.");
+        }
         return agendamentoRepository.save(agendamento);
     }
 

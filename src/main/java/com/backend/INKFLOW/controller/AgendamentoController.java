@@ -23,11 +23,13 @@ public class AgendamentoController {
     @Autowired
     private ArtistaService artistaService;
 
+    /** Retorna todos os agendamentos. Acesso restrito a ROLE_ADMIN. */
     @GetMapping
     public List<Agendamento> getAllAgendamentos() {
         return agendamentoService.getAllAgendamentos();
     }
 
+    /** Busca um agendamento pelo ID. */
     @GetMapping("/{id}")
     public ResponseEntity<Agendamento> getAgendamentoById(@PathVariable Long id) {
         return agendamentoService.getAgendamentoById(id)
@@ -35,11 +37,18 @@ public class AgendamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Retorna agendamentos de um cliente. O clienteId e validado por ownership no PATCH /status. */
     @GetMapping("/cliente/{clienteId}")
     public List<Agendamento> getByCliente(@PathVariable Long clienteId) {
         return agendamentoService.getAgendamentosByClienteId(clienteId);
     }
 
+    /**
+     * Retorna agendamentos do artista autenticado.
+     * SEGURANCA: o artistaId da URL e usado apenas para validacao cruzada.
+     * A query no banco usa exclusivamente o e-mail extraido do Token JWT,
+     * prevenindo ataques IDOR (Insecure Direct Object Reference).
+     */
     @GetMapping("/artista/{artistaId}")
     public ResponseEntity<?> getByArtista(@PathVariable Integer artistaId, Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream()

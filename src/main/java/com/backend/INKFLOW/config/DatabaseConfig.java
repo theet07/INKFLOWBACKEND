@@ -1,5 +1,7 @@
 package com.backend.INKFLOW.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +18,8 @@ import org.springframework.context.annotation.Primary;
 @Configuration
 public class DatabaseConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
+
     @Bean
     @Primary
     public DataSource dataSource() {
@@ -28,13 +32,9 @@ public class DatabaseConfig {
         String dbPassword = getEnvOrNull("DB_PASSWORD");
 
         if (dbUrl != null) {
-            System.out.println(">>> Usando DB_URL + DB_USERNAME + DB_PASSWORD");
-
-            // Detectar tipo de banco e driver
             String driverClass = detectDriver(dbUrl);
-            System.out.println(">>> Driver detectado: " + driverClass);
-            System.out.println(">>> JDBC URL: " + dbUrl);
-            System.out.println(">>> Username: " + (dbUsername != null ? dbUsername : "NULL"));
+            log.info("DataSource: DB_URL | driver={} | url={} | user={}",
+                    driverClass, dbUrl, dbUsername != null ? dbUsername : "NULL");
 
             DataSourceBuilder<?> builder = DataSourceBuilder.create()
                     .url(dbUrl)
@@ -53,12 +53,10 @@ public class DatabaseConfig {
         if (databaseUrl == null) databaseUrl = getEnvOrNull("DATABASE_INTERNAL_URL");
 
         if (databaseUrl != null) {
-            System.out.println(">>> Usando DATABASE_URL combinada");
-
-            // Se já for JDBC, usar diretamente
+            log.info("DataSource: DATABASE_URL combinada");
             if (databaseUrl.startsWith("jdbc:")) {
                 String driverClass = detectDriver(databaseUrl);
-                System.out.println(">>> JDBC URL direta: " + databaseUrl);
+                log.info("DataSource: JDBC URL direta | driver={}", driverClass);
                 return DataSourceBuilder.create()
                         .url(databaseUrl)
                         .driverClassName(driverClass)
@@ -102,7 +100,7 @@ public class DatabaseConfig {
                     jdbcUrl.append("?sslmode=require");
                 }
 
-                System.out.println(">>> JDBC URL: " + jdbcUrl);
+                log.info("DataSource: JDBC URL construida={}", jdbcUrl);
                 return DataSourceBuilder.create()
                         .url(jdbcUrl.toString())
                         .username(username)
@@ -111,7 +109,7 @@ public class DatabaseConfig {
                         .build();
 
             } catch (Exception e) {
-                System.err.println(">>> ERRO parsing DATABASE_URL: " + e.getMessage());
+                log.error("Falha ao parsear DATABASE_URL: {}", e.getMessage());
                 throw new RuntimeException("Falha ao configurar DataSource", e);
             }
         }
@@ -119,7 +117,7 @@ public class DatabaseConfig {
         // ============================================================
         // FALLBACK: localhost
         // ============================================================
-        System.err.println(">>> NENHUMA variável de banco encontrada! Usando localhost.");
+        log.warn("Nenhuma variavel de banco encontrada. Usando localhost como fallback.");
         return DataSourceBuilder.create()
                 .url("jdbc:postgresql://localhost:5432/inkflow")
                 .username("postgres")

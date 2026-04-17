@@ -56,10 +56,18 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ping", "/api/health").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
+                // Rotas v1 da Landing Page - publicas
+                .requestMatchers(HttpMethod.GET, "/api/v1/artists/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/appointments").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/appointments").hasAnyRole("ARTISTA", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/artistas").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/artistas/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/portfolio/artista/*").permitAll()
                 .requestMatchers("/api/portfolio/**").hasAnyRole("ARTISTA", "ADMIN")
+                // Disponibilidade: GET publico, escrita restrita a ARTISTA/ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/disponibilidade/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/disponibilidade/**").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/disponibilidade/**").hasAnyRole("ARTISTA", "ADMIN")
 
                 // Rotas exclusivas de ADMIN
                 .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")

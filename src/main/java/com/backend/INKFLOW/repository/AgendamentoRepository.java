@@ -20,6 +20,15 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     List<Agendamento> findByArtistaEmailOrderByDataHoraAsc(String email);
     List<Agendamento> findByStatus(String status);
     List<Agendamento> findByDataHoraBetween(LocalDateTime inicio, LocalDateTime fim);
+
+    /** Busca horarios ja ocupados de um artista em um dia especifico, excluindo cancelados. */
+    @Query("SELECT a FROM Agendamento a WHERE a.artista.id = :artistaId " +
+           "AND a.dataHora >= :inicioDia AND a.dataHora < :fimDia " +
+           "AND a.status NOT IN ('CANCELADO', 'FINALIZADO')")
+    List<Agendamento> findOcupadosByArtistaIdAndDia(
+            @Param("artistaId") Integer artistaId,
+            @Param("inicioDia") LocalDateTime inicioDia,
+            @Param("fimDia") LocalDateTime fimDia);
     List<Agendamento> findAllByOrderByDataHoraAsc();
     
     @Modifying(clearAutomatically = true)

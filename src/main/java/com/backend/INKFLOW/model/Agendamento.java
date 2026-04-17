@@ -24,7 +24,7 @@ public class Agendamento {
 
     private String servico;
     private String descricao;
-    private String status = "AGENDADO";
+    private String status = "PENDENTE";
     private Double preco;
     private Integer avaliacao;
     private String observacoes;

@@ -78,6 +78,31 @@ public class AppointmentController {
     }
 
     /**
+     * PUT /api/appointments/{id}/avaliar
+     * Salva a avaliacao do cliente e marca avaliado = true.
+     * Ownership: apenas o cliente dono do agendamento pode avaliar.
+     */
+    @PutMapping("/{id}/avaliar")
+    public ResponseEntity<?> avaliar(@PathVariable Long id,
+                                      @RequestBody Map<String, Object> body,
+                                      org.springframework.security.core.Authentication auth) {
+        return agendamentoService.getAgendamentoById(id)
+                .map(ag -> {
+                    if (!ag.getCliente().getEmail().equals(auth.getName()))
+                        return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
+                    Integer nota = body.get("avaliacao") instanceof Number
+                            ? ((Number) body.get("avaliacao")).intValue() : null;
+                    if (nota == null || nota < 1 || nota > 5)
+                        return ResponseEntity.badRequest().body(Map.of("message", "Avaliacao deve ser entre 1 e 5."));
+                    String obs = (String) body.get("observacoes");
+                    return agendamentoService.avaliar(id, nota, obs)
+                            .map(salvo -> (ResponseEntity<?>) ResponseEntity.ok(salvo))
+                            .orElse(ResponseEntity.notFound().build());
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * POST /api/appointments
      * Cria um agendamento vindo do formulario Booking.jsx.
      * Aceita o mesmo payload do LandingPageController /api/v1/appointments.

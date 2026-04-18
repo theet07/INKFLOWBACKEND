@@ -120,6 +120,16 @@ public class AgendamentoService {
         });
     }
 
+    /** Salva avaliacao do cliente e marca avaliado = true. */
+    public Optional<Agendamento> avaliar(Long id, Integer nota, String observacoes) {
+        return agendamentoRepository.findById(id).map(ag -> {
+            ag.setAvaliacao(nota);
+            if (observacoes != null) ag.setObservacoes(observacoes);
+            ag.setAvaliado(true);
+            return agendamentoRepository.save(ag);
+        });
+    }
+
     public void deleteAgendamento(Long id) {
         agendamentoRepository.deleteById(id);
     }

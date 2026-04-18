@@ -76,10 +76,17 @@ public class ClienteController {
     public ResponseEntity<?> solicitarCodigo(@RequestBody Cliente cliente) {
         if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
             return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
+        if (cliente.getPassword() == null || cliente.getPassword().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria."));
+        if (cliente.getUsername() == null || cliente.getUsername().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Username e obrigatorio."));
         if (clienteService.existsByEmail(cliente.getEmail()))
             return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
         if (clienteService.existsByUsername(cliente.getUsername()))
             return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+
+        // Garante contaVerificada=false antes de salvar
+        cliente.setContaVerificada(false);
 
         Cliente salvo = clienteService.saveCliente(cliente);
         String codigo = clienteService.gerarEsalvarCodigo(salvo);

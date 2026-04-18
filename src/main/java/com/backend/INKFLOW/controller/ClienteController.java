@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,20 +21,12 @@ import org.slf4j.LoggerFactory;
 public class ClienteController {
 
     private static final Logger log = LoggerFactory.getLogger(ClienteController.class);
-
-    @Autowired
-    private ClienteService clienteService;
-
-    @Autowired
-    private FotoService fotoService;
-
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
     private static final String GMAIL_REGEX = "^[^@]+@gmail\\.com$";
+
+    @Autowired private ClienteService clienteService;
+    @Autowired private FotoService fotoService;
+    @Autowired private EmailService emailService;
+    @Autowired private JwtUtil jwtUtil;
 
     @GetMapping
     public List<Cliente> getAllClientes() {
@@ -69,8 +62,9 @@ public class ClienteController {
 
     /**
      * POST /api/clientes/solicitar-codigo
-     * Pre-cadastro: salva o cliente com conta_verificada=false,
-     * gera OTP de 6 digitos e envia por e-mail.
+     * - Email novo: cria cliente e envia OTP.
+     * - Email existente + conta NAO verificada: atualiza dados e reenvia OTP.
+     * - Email existente + conta verificada: retorna 409.
      */
     @PostMapping("/solicitar-codigo")
     public ResponseEntity<?> solicitarCodigo(@RequestBody Cliente cliente) {
@@ -80,33 +74,49 @@ public class ClienteController {
             return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria."));
         if (cliente.getUsername() == null || cliente.getUsername().isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Username e obrigatorio."));
-        if (clienteService.existsByEmail(cliente.getEmail()))
-            return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
-        if (clienteService.existsByUsername(cliente.getUsername()))
-            return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
 
-        // Garante contaVerificada=false antes de salvar
-        cliente.setContaVerificada(false);
+        Optional<Cliente> existente = clienteService.getUserByEmail(cliente.getEmail());
+        Cliente alvo;
 
-        Cliente salvo = clienteService.saveCliente(cliente);
-        String codigo = clienteService.gerarEsalvarCodigo(salvo);
+        if (existente.isPresent()) {
+            Cliente ex = existente.get();
+            // Conta ja verificada — bloqueia reuso do e-mail
+            if (Boolean.TRUE.equals(ex.getContaVerificada())) {
+                return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+            }
+            // Conta nao verificada — atualiza dados e reenvia OTP
+            ex.setFullName(cliente.getFullName());
+            ex.setTelefone(cliente.getTelefone());
+            ex.setUsername(cliente.getUsername());
+            if (cliente.getPassword() != null && !cliente.getPassword().startsWith("$2a$")) {
+                ex.setPassword(cliente.getPassword());
+            }
+            alvo = clienteService.saveCliente(ex);
+        } else {
+            // Novo cliente
+            if (clienteService.existsByUsername(cliente.getUsername()))
+                return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+            cliente.setContaVerificada(false);
+            alvo = clienteService.saveCliente(cliente);
+        }
+
+        String codigo = clienteService.gerarEsalvarCodigo(alvo);
 
         try {
-            emailService.enviarCodigoVerificacao(salvo.getEmail(), codigo);
+            emailService.enviarCodigoVerificacao(alvo.getEmail(), codigo);
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Conta criada mas falha ao enviar e-mail. Tente reenviar o codigo."));
         }
 
         return ResponseEntity.ok(Map.of(
-                "message", "Codigo de verificacao enviado para " + salvo.getEmail(),
-                "email", salvo.getEmail()
+                "message", "Codigo de verificacao enviado para " + alvo.getEmail(),
+                "email", alvo.getEmail()
         ));
     }
 
     /**
      * POST /api/clientes/verificar-codigo
-     * Confirma o OTP. Se correto, ativa a conta e retorna o token JWT.
      * Body: { "email": "...", "codigo": "123456" }
      */
     @PostMapping("/verificar-codigo")
@@ -204,10 +214,6 @@ public class ClienteController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Verifica se o usuario autenticado e o dono do recurso ou ADMIN.
-     * Extrai o email do JWT e compara com o email do cliente no banco.
-     */
     private boolean isOwnerOrAdmin(Long clienteId, Authentication auth) {
         if (auth == null) return false;
         boolean isAdmin = auth.getAuthorities().stream()

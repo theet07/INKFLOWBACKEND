@@ -266,9 +266,9 @@ public class BackupService {
      * Cron diario as 00:00 — gera backup e envia via webhook se configurado.
      * Para configurar o webhook, defina a variavel de ambiente BACKUP_WEBHOOK_URL.
      */
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 3 * * *")
     public void backupAutomatico() {
-        log.info("Iniciando backup automatico diario...");
+        log.info("Iniciando rotina automatica de backup e envio para Webhook");
         try {
             String conteudo = gerarSql();
             int linhas = conteudo.split("\n").length;

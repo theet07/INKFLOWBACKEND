@@ -25,7 +25,7 @@ public class ClienteController {
     @Autowired
     private FotoService fotoService;
 
-    private static final String GMAIL_REGEX = "^[^@]+@gmail\.com$";
+    private static final String GMAIL_REGEX = "^[^@]+@gmail\\.com$";
 
     @GetMapping
     public List<Cliente> getAllClientes() {

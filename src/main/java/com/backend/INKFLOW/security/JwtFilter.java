@@ -43,9 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
                     if (role == null || role.isBlank()) {
                         log.warn("Token valido mas sem role definida para o email: {}", email);
-                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                        response.setContentType("application/json;charset=UTF-8");
-                        response.getWriter().write("{\"error\": \"Token sem permissao definida. Faca login novamente.\"}" );
+                        chain.doFilter(request, response);
                         return;
                     }
 
@@ -53,10 +51,8 @@ public class JwtFilter extends OncePerRequestFilter {
                     var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"Token inválido ou expirado\"}");
-                    return;
+                    log.warn("Token invalido ou expirado para URI: {}", request.getRequestURI());
+                    // Nao interrompe — deixa o Spring Security retornar 401 via AccessDeniedException
                 }
             }
 

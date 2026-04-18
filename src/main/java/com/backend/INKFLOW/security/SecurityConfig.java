@@ -90,6 +90,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/agendamentos/{id}/status").hasAnyRole("ARTISTA", "ADMIN", "CLIENTE")
 
                 // Rotas de cliente autenticado
+                .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/appointments/cliente/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/clientes/email/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/*/foto").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/clientes/*/foto").authenticated()

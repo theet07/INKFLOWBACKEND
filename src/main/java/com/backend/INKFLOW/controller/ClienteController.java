@@ -9,6 +9,7 @@ import com.backend.INKFLOW.service.FotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
@@ -28,6 +29,7 @@ public class ClienteController {
     @Autowired private FotoService fotoService;
     @Autowired private EmailService emailService;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     @GetMapping
     public List<Cliente> getAllClientes() {
@@ -176,6 +178,37 @@ public class ClienteController {
             log.error("Erro ao deletar cliente {}: {}", id, e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente: " + e.getMessage()));
         }
+    }
+
+    /**
+     * DELETE /api/clientes/minha-conta
+     * Exclui a conta do usuario autenticado apos validar a senha.
+     * O ID e extraido exclusivamente do Token JWT — nunca da URL.
+     * Body: { "password": "senhaAtual" }
+     */
+    @DeleteMapping("/minha-conta")
+    public ResponseEntity<?> deleteMinhaConta(@RequestBody Map<String, String> body, Authentication auth) {
+        String senhaDigitada = body.get("password");
+        if (senhaDigitada == null || senhaDigitada.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria para excluir a conta."));
+
+        // Resolve o cliente pelo email do JWT — nunca confia em ID da URL
+        return clienteService.getUserByEmail(auth.getName())
+                .map(cliente -> {
+                    if (!passwordEncoder.matches(senhaDigitada, cliente.getPassword())) {
+                        return ResponseEntity.status(401)
+                                .body(Map.of("message", "Credenciais invalidas."));
+                    }
+                    try {
+                        clienteService.deleteCliente(cliente.getId());
+                        return ResponseEntity.ok(Map.of("message", "Conta excluida com sucesso."));
+                    } catch (Exception e) {
+                        log.error("Erro ao deletar conta do cliente {}: {}", cliente.getId(), e.getMessage(), e);
+                        return ResponseEntity.internalServerError()
+                                .body(Map.of("message", "Erro ao excluir conta."));
+                    }
+                })
+                .orElse(ResponseEntity.status(404).body(Map.of("message", "Usuario nao encontrado.")));
     }
 
     @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")

@@ -41,8 +41,7 @@ public class ClienteService {
     }
     
     public Cliente saveCliente(Cliente cliente) {
-        if (cliente.getId() == null && cliente.getPassword() != null
-                && !cliente.getPassword().startsWith("$2a$")) {
+        if (cliente.getPassword() != null && !cliente.getPassword().startsWith("$2a$")) {
             cliente.setPassword(passwordEncoder.encode(cliente.getPassword()));
         }
         return clienteRepository.save(cliente);

@@ -47,6 +47,23 @@ public class AppointmentController {
     @Value("${landing.default.client.password:inkflow@landing2025}")
     private String defaultClientPassword;
 
+    /** GET /api/appointments/cliente/{clienteId} — alias para o frontend */
+    @GetMapping("/cliente/{clienteId}")
+    public ResponseEntity<?> getByCliente(@PathVariable Long clienteId,
+                                           org.springframework.security.core.Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            boolean isOwner = agendamentoService.getAgendamentosByClienteId(clienteId)
+                    .stream().findFirst()
+                    .map(ag -> ag.getCliente().getEmail().equals(auth.getName()))
+                    .orElse(true);
+            if (!isOwner)
+                return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
+        }
+        return ResponseEntity.ok(agendamentoService.getAgendamentosByClienteId(clienteId));
+    }
+
     /**
      * POST /api/appointments
      * Cria um agendamento vindo do formulario Booking.jsx.

@@ -65,6 +65,19 @@ public class AppointmentController {
     }
 
     /**
+     * GET /api/appointments/meus
+     * Retorna os agendamentos do cliente autenticado usando o email do JWT.
+     * Mais seguro que buscar por ID — nunca confia em parametro da URL.
+     */
+    @GetMapping("/meus")
+    public ResponseEntity<?> getMeusAgendamentos(org.springframework.security.core.Authentication auth) {
+        return clienteService.getUserByEmail(auth.getName())
+                .map(cliente -> ResponseEntity.ok(
+                        agendamentoService.getAgendamentosByClienteId(cliente.getId())))
+                .orElse(ResponseEntity.status(404).build());
+    }
+
+    /**
      * POST /api/appointments
      * Cria um agendamento vindo do formulario Booking.jsx.
      * Aceita o mesmo payload do LandingPageController /api/v1/appointments.

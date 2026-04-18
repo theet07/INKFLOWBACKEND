@@ -59,6 +59,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/clientes/solicitar-codigo").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/verificar-codigo").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/appointments").permitAll()
+                // Rotas /api/artists (alias ingles) - publicas
+                .requestMatchers(HttpMethod.GET, "/api/artists").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/artists/**").permitAll()
                 // Rotas v1 da Landing Page - publicas
                 .requestMatchers(HttpMethod.GET, "/api/v1/artists/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/appointments").permitAll()

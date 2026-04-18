@@ -54,7 +54,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/ping", "/api/health").permitAll()
+                .requestMatchers("/api/auth/**", "/ping", "/api/health", "/api/status", "/").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 // Rotas v1 da Landing Page - publicas
                 .requestMatchers(HttpMethod.GET, "/api/v1/artists/**").permitAll()
@@ -70,7 +70,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/disponibilidade/**").hasAnyRole("ARTISTA", "ADMIN")
 
                 // Rotas exclusivas de ADMIN
-                .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/clientes").hasRole("ADMIN")

@@ -60,12 +60,15 @@ public class AgendamentoService {
     }
 
     /**
-     * Salva um agendamento. Valida que a imagemReferenciaUrl, se presente,
-     * pertence ao Cloudinary para evitar links externos maliciosos.
+     * Salva um agendamento.
+     * A validacao de Cloudinary e aplicada apenas se a URL nao for nula e nao for
+     * um caminho relativo (assets locais do frontend sao ignorados).
      */
     public Agendamento saveAgendamento(Agendamento agendamento) {
         String url = agendamento.getImagemReferenciaUrl();
-        if (url != null && !url.isBlank() && !url.startsWith(CLOUDINARY_PREFIX)) {
+        if (url != null && !url.isBlank()
+                && url.startsWith("http")
+                && !url.startsWith(CLOUDINARY_PREFIX)) {
             throw new IllegalArgumentException("imagemReferenciaUrl deve ser uma URL valida do Cloudinary.");
         }
         return agendamentoRepository.save(agendamento);

@@ -2,6 +2,7 @@ package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity
 @Table(name = "agendamentos")
@@ -20,6 +21,7 @@ public class Agendamento {
     private Artista artista;
 
     @Column(nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dataHora;
 
     private String servico;

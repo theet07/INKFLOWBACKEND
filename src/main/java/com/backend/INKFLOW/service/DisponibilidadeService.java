@@ -65,32 +65,39 @@ public class DisponibilidadeService {
      * @return lista de strings "HH:mm" com os slots disponiveis
      */
     public List<String> getSlotsDisponiveis(Integer artistaId, LocalDate data) {
-        // Dia da semana: DayOfWeek.MONDAY = 1, convertemos para 0=Seg
+        if (artistaId == null || data == null) return List.of();
+
         int diaSemana = data.getDayOfWeek().getValue() - 1;
 
         Optional<DisponibilidadeArtista> dispOpt =
                 disponibilidadeRepository.findByArtistaIdAndDiaSemana(artistaId, diaSemana);
 
-        if (dispOpt.isEmpty() || !dispOpt.get().getAtivo()) {
-            return List.of(); // artista nao trabalha neste dia
+        if (dispOpt.isEmpty() || Boolean.FALSE.equals(dispOpt.get().getAtivo())) {
+            return List.of();
         }
 
         DisponibilidadeArtista disp = dispOpt.get();
+
+        if (disp.getHoraInicio() == null || disp.getHoraFim() == null) return List.of();
+
         LocalTime inicio = LocalTime.parse(disp.getHoraInicio(), TIME_FMT);
         LocalTime fim = LocalTime.parse(disp.getHoraFim(), TIME_FMT);
-        int slot = disp.getDuracaoSlotMinutos();
+        int slot = disp.getDuracaoSlotMinutos() != null ? disp.getDuracaoSlotMinutos() : 60;
 
-        // Busca horarios ja ocupados no banco
         LocalDateTime inicioDia = data.atStartOfDay();
         LocalDateTime fimDia = data.plusDays(1).atStartOfDay();
-        List<Agendamento> ocupados = agendamentoRepository
+
+        List<Agendamento> ocupadosRaw = agendamentoRepository
                 .findOcupadosByArtistaIdAndDia(artistaId, inicioDia, fimDia);
 
+        // Protege contra lista nula retornada pelo banco
+        List<Agendamento> ocupados = ocupadosRaw != null ? ocupadosRaw : List.of();
+
         Set<String> horariosOcupados = ocupados.stream()
+                .filter(a -> a.getDataHora() != null)
                 .map(a -> a.getDataHora().toLocalTime().format(TIME_FMT))
                 .collect(Collectors.toSet());
 
-        // Gera todos os slots e filtra os ocupados
         List<String> disponiveis = new ArrayList<>();
         LocalTime atual = inicio;
         while (atual.plusMinutes(slot).compareTo(fim) <= 0) {
@@ -106,19 +113,26 @@ public class DisponibilidadeService {
 
     /**
      * Retorna um mapa de data -> slots disponiveis para um mes inteiro.
-     * Usado pelo calendario do frontend para marcar dias com disponibilidade.
+     * Usa HashMap para evitar NullPointerException do Collectors.toMap
+     * quando a lista de slots e vazia.
      */
     public Map<String, List<String>> getCalendarioMensal(Integer artistaId, int ano, int mes) {
         LocalDate inicio = LocalDate.of(ano, mes, 1);
         LocalDate fim = inicio.withDayOfMonth(inicio.lengthOfMonth());
         LocalDate hoje = LocalDate.now();
 
-        return inicio.datesUntil(fim.plusDays(1))
+        Map<String, List<String>> resultado = new java.util.LinkedHashMap<>();
+        inicio.datesUntil(fim.plusDays(1))
                 .filter(d -> !d.isBefore(hoje))
-                .collect(Collectors.toMap(
-                        d -> d.toString(),
-                        d -> getSlotsDisponiveis(artistaId, d)
-                ));
+                .forEach(d -> {
+                    try {
+                        List<String> slots = getSlotsDisponiveis(artistaId, d);
+                        resultado.put(d.toString(), slots != null ? slots : List.of());
+                    } catch (Exception e) {
+                        resultado.put(d.toString(), List.of());
+                    }
+                });
+        return resultado;
     }
 
     public void remover(Long id) {

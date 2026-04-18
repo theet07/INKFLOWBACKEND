@@ -16,7 +16,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAll(Exception e) {
         String mensagemSanitizada = sanitizar(e.getMessage());
-        log.error("Erro nao tratado [{}]: {}", e.getClass().getSimpleName(), mensagemSanitizada);
+        log.error("Erro nao tratado [{}]: {} ", e.getClass().getSimpleName(), mensagemSanitizada, e);
         return ResponseEntity.internalServerError()
                 .body(Map.of(
                         "error", e.getClass().getSimpleName(),

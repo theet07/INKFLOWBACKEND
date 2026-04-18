@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
@@ -77,29 +78,47 @@ public class AppointmentController {
                 .body(Map.of("message", "Payload invalido. Envie {cliente:{id}, artista:{id}, dataHora} ou {artistId, clienteEmail, date}."));
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AppointmentController.class);
+
     /** Payload direto: { cliente:{id}, artista:{id}, dataHora, servico, ... } */
     private ResponseEntity<?> criarAgendamentoDireto(Map<String, Object> body) {
         try {
             Agendamento ag = new Agendamento();
 
-            // Cliente
+            // Cliente — busca pelo ID, retorna 400 se nao encontrado
             Map<?, ?> clienteMap = (Map<?, ?>) body.get("cliente");
+            if (clienteMap == null || clienteMap.get("id") == null)
+                return ResponseEntity.badRequest().body(Map.of("message", "cliente.id e obrigatorio."));
             Long clienteId = ((Number) clienteMap.get("id")).longValue();
-            clienteService.getClienteById(clienteId).ifPresent(ag::setCliente);
+            clienteService.getClienteById(clienteId)
+                    .ifPresentOrElse(ag::setCliente, () -> {});
             if (ag.getCliente() == null)
-                return ResponseEntity.badRequest().body(Map.of("message", "Cliente nao encontrado."));
+                return ResponseEntity.badRequest().body(Map.of("message", "Cliente id=" + clienteId + " nao encontrado."));
 
-            // Artista (opcional)
+            // Artista — busca pelo ID, retorna 400 se nao encontrado
             Object artistaRaw = body.get("artista");
             if (artistaRaw instanceof Map) {
                 Object artistaIdRaw = ((Map<?, ?>) artistaRaw).get("id");
                 if (artistaIdRaw != null) {
                     Integer artistaId = ((Number) artistaIdRaw).intValue();
-                    artistaService.getById(artistaId).ifPresent(ag::setArtista);
+                    artistaService.getById(artistaId)
+                            .ifPresentOrElse(ag::setArtista, () -> {});
+                    if (ag.getArtista() == null)
+                        return ResponseEntity.badRequest().body(Map.of("message", "Artista id=" + artistaId + " nao encontrado."));
                 }
             }
 
-            ag.setDataHora(LocalDateTime.parse((String) body.get("dataHora")));
+            // Data/hora — suporta com e sem segundos
+            String dataHoraStr = (String) body.get("dataHora");
+            if (dataHoraStr == null)
+                return ResponseEntity.badRequest().body(Map.of("message", "dataHora e obrigatorio."));
+            try {
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm[:ss]");
+                ag.setDataHora(LocalDateTime.parse(dataHoraStr, fmt));
+            } catch (DateTimeParseException ex) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Formato de dataHora invalido. Use yyyy-MM-ddTHH:mm:ss"));
+            }
+
             ag.setStatus("PENDENTE");
             if (body.get("servico") != null) ag.setServico((String) body.get("servico"));
             if (body.get("descricao") != null) ag.setDescricao((String) body.get("descricao"));
@@ -109,10 +128,21 @@ public class AppointmentController {
             if (body.get("tags") != null) ag.setTags((String) body.get("tags"));
             if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
 
+            log.info("[Appointment] Salvando: cliente={} artista={} dataHora={} servico={}",
+                    ag.getCliente().getId(),
+                    ag.getArtista() != null ? ag.getArtista().getId() : "null",
+                    ag.getDataHora(), ag.getServico());
+
             Agendamento salvo = agendamentoService.saveAgendamento(ag);
-            return ResponseEntity.status(201).body(salvo);
+            return ResponseEntity.status(201).body(Map.of(
+                    "success", true,
+                    "id", salvo.getId(),
+                    "status", salvo.getStatus(),
+                    "message", "Agendamento criado com sucesso!"
+            ));
 
         } catch (Exception e) {
+            log.error("[Appointment] Erro ao salvar agendamento direto: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "Erro ao criar agendamento: " + e.getMessage()));
         }

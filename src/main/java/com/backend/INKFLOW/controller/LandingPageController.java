@@ -57,28 +57,38 @@ public class LandingPageController {
     public ResponseEntity<?> getAvailability(@PathVariable Integer artistId,
                                               @RequestParam(required = false) Integer ano,
                                               @RequestParam(required = false) Integer mes) {
-        Optional<Artista> artista = artistaService.getById(artistId);
-        if (artista.isEmpty()) {
-            return ResponseEntity.notFound().build();
+        try {
+            Optional<Artista> artista = artistaService.getById(artistId);
+            if (artista.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            int anoParam = ano != null ? ano : LocalDate.now().getYear();
+            int mesParam = mes != null ? mes : LocalDate.now().getMonthValue();
+
+            if (mesParam < 1 || mesParam > 12) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Mes invalido."));
+            }
+
+            Map<String, List<String>> calendario =
+                    disponibilidadeService.getCalendarioMensal(artistId, anoParam, mesParam);
+
+            // Converte para array [{data, disponivel, slots}] esperado pelo frontend
+            List<Map<String, Object>> dias = calendario.entrySet().stream()
+                    .map(e -> {
+                        Map<String, Object> dia = new HashMap<>();
+                        dia.put("data", e.getKey());
+                        dia.put("disponivel", !e.getValue().isEmpty());
+                        dia.put("slots", e.getValue());
+                        return dia;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+
+            return ResponseEntity.ok(dias);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Erro ao carregar disponibilidade: " + e.getMessage()));
         }
-
-        int anoParam = ano != null ? ano : LocalDate.now().getYear();
-        int mesParam = mes != null ? mes : LocalDate.now().getMonthValue();
-
-        if (mesParam < 1 || mesParam > 12) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Mes invalido."));
-        }
-
-        Map<String, List<String>> calendario =
-                disponibilidadeService.getCalendarioMensal(artistId, anoParam, mesParam);
-
-        return ResponseEntity.ok(Map.of(
-                "artistId", artistId,
-                "nome", artista.get().getNome(),
-                "ano", anoParam,
-                "mes", mesParam,
-                "disponibilidade", calendario
-        ));
     }
 
     /**
@@ -91,14 +101,22 @@ public class LandingPageController {
         try {
             LocalDate localDate = LocalDate.parse(data);
             List<String> slots = disponibilidadeService.getSlotsDisponiveis(artistId, localDate);
-            return ResponseEntity.ok(Map.of(
-                    "artistId", artistId,
-                    "data", data,
-                    "slots", slots
-            ));
+            // Converte para [{horario, disponivel}] esperado pelo Booking.jsx
+            List<Map<String, Object>> resultado = slots.stream()
+                    .map(s -> {
+                        Map<String, Object> slot = new HashMap<>();
+                        slot.put("horario", s);
+                        slot.put("disponivel", true);
+                        return slot;
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(resultado);
         } catch (DateTimeParseException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", "Formato de data invalido. Use YYYY-MM-DD."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Erro ao carregar slots: " + e.getMessage()));
         }
     }
 

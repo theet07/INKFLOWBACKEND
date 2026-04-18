@@ -1,7 +1,9 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
+import com.backend.INKFLOW.service.EmailService;
 import com.backend.INKFLOW.service.FotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,12 @@ public class ClienteController {
 
     @Autowired
     private FotoService fotoService;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     private static final String GMAIL_REGEX = "^[^@]+@gmail\\.com$";
 
@@ -57,6 +65,68 @@ public class ClienteController {
         if (clienteService.existsByEmail(cliente.getEmail()))
             return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
         return ResponseEntity.ok(clienteService.saveCliente(cliente));
+    }
+
+    /**
+     * POST /api/clientes/solicitar-codigo
+     * Pre-cadastro: salva o cliente com conta_verificada=false,
+     * gera OTP de 6 digitos e envia por e-mail.
+     */
+    @PostMapping("/solicitar-codigo")
+    public ResponseEntity<?> solicitarCodigo(@RequestBody Cliente cliente) {
+        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+            return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
+        if (clienteService.existsByEmail(cliente.getEmail()))
+            return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+        if (clienteService.existsByUsername(cliente.getUsername()))
+            return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+
+        Cliente salvo = clienteService.saveCliente(cliente);
+        String codigo = clienteService.gerarEsalvarCodigo(salvo);
+
+        try {
+            emailService.enviarCodigoVerificacao(salvo.getEmail(), codigo);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Conta criada mas falha ao enviar e-mail. Tente reenviar o codigo."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Codigo de verificacao enviado para " + salvo.getEmail(),
+                "email", salvo.getEmail()
+        ));
+    }
+
+    /**
+     * POST /api/clientes/verificar-codigo
+     * Confirma o OTP. Se correto, ativa a conta e retorna o token JWT.
+     * Body: { "email": "...", "codigo": "123456" }
+     */
+    @PostMapping("/verificar-codigo")
+    public ResponseEntity<?> verificarCodigo(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String codigo = body.get("codigo");
+
+        if (email == null || codigo == null)
+            return ResponseEntity.badRequest().body(Map.of("message", "email e codigo sao obrigatorios."));
+
+        return clienteService.verificarCodigo(email, codigo)
+                .map(cliente -> {
+                    String token = jwtUtil.generateToken(cliente.getEmail(), "ROLE_CLIENTE");
+                    return ResponseEntity.ok(Map.of(
+                            "success", true,
+                            "message", "Conta verificada com sucesso!",
+                            "token", token,
+                            "user", Map.of(
+                                    "id", cliente.getId(),
+                                    "email", cliente.getEmail(),
+                                    "nome", cliente.getFullName() != null ? cliente.getFullName() : "",
+                                    "role", "ROLE_CLIENTE"
+                            )
+                    ));
+                })
+                .orElse(ResponseEntity.status(422)
+                        .body(Map.of("message", "Codigo invalido ou expirado.")));
     }
 
     @PutMapping("/{id}")

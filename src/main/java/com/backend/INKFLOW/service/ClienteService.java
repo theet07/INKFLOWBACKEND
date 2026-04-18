@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class ClienteService {
@@ -67,5 +68,29 @@ public class ClienteService {
     
     public Optional<Cliente> getUserByEmail(String email) {
         return clienteRepository.findByEmail(email);
+    }
+
+    /** Gera um codigo OTP de 6 digitos, salva no cliente e retorna o codigo. */
+    public String gerarEsalvarCodigo(Cliente cliente) {
+        String codigo = String.format("%06d", new Random().nextInt(999999));
+        cliente.setCodigoVerificacao(codigo);
+        cliente.setContaVerificada(false);
+        clienteRepository.save(cliente);
+        return codigo;
+    }
+
+    /**
+     * Verifica o codigo OTP. Se correto, ativa a conta e limpa o codigo.
+     * Retorna o cliente ativado ou empty se o codigo for invalido.
+     */
+    public Optional<Cliente> verificarCodigo(String email, String codigo) {
+        return clienteRepository.findByEmail(email).map(cliente -> {
+            if (codigo != null && codigo.equals(cliente.getCodigoVerificacao())) {
+                cliente.setContaVerificada(true);
+                cliente.setCodigoVerificacao(null);
+                return clienteRepository.save(cliente);
+            }
+            return null;
+        });
     }
 }

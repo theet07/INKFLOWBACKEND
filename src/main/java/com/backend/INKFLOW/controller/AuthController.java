@@ -74,6 +74,12 @@ public class AuthController {
         // Login cliente
         Optional<Cliente> cliente = clienteService.getUserByEmail(email);
         if (cliente.isPresent() && passwordEncoder.matches(password, cliente.get().getPassword())) {
+            if (!cliente.get().isContaVerificada()) {
+                return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "message", "Conta nao verificada. Confirme seu e-mail antes de fazer login."
+                ));
+            }
             String token = jwtUtil.generateToken(email, "ROLE_CLIENTE");
             Map<String, Object> clienteUser = new HashMap<>();
             clienteUser.put("id", cliente.get().getId());

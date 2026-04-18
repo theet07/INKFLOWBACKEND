@@ -44,9 +44,14 @@ public class BackupService {
     @Autowired private PortfolioRepository portfolioRepository;
     @Autowired private DisponibilidadeRepository disponibilidadeRepository;
 
+    public boolean isWebhookConfigurado() {
+        return webhookUrl != null && !webhookUrl.isBlank();
+    }
+
     /**
      * Gera o conteudo SQL completo com todos os dados atuais do banco.
-     * Exporta INSERTs para todas as tabelas na ordem correta (sem violar FKs).
+     * Cada tabela e processada em bloco try-catch independente para que
+     * uma falha isolada nao derrube o backup inteiro.
      */
     public String gerarSql() {
         StringBuilder sql = new StringBuilder();
@@ -56,81 +61,93 @@ public class BackupService {
         sql.append("-- Gerado em: ").append(ts).append("\n\n");
 
         // Artistas
-        sql.append("-- ARTISTAS\n");
-        for (Artista a : artistaRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO artistas (id, nome, role, especialidades, bio, foto_url, ativo, email, senha) VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s);\n",
-                a.getId(), q(a.getNome()), q(a.getRole()), q(a.getEspecialidades()),
-                q(a.getBio()), q(a.getFotoUrl()),
-                a.getAtivo() != null && a.getAtivo() ? "1" : "0",
-                q(a.getEmail()), q(a.getPassword())
-            ));
-        }
+        try {
+            sql.append("-- ARTISTAS\n");
+            for (Artista a : artistaRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO artistas (id, nome, role, especialidades, bio, foto_url, ativo, email, senha) VALUES (%d, %s, %s, %s, %s, %s, %s, %s, %s);\n",
+                    a.getId(), q(a.getNome()), q(a.getRole()), q(a.getEspecialidades()),
+                    q(a.getBio()), q(a.getFotoUrl()),
+                    a.getAtivo() != null && a.getAtivo() ? "1" : "0",
+                    q(a.getEmail()), q(a.getPassword())
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em artistas: {}", e.getMessage()); }
 
-        // Clientes (sem expor senha em texto claro — hash BCrypt)
-        sql.append("\n-- CLIENTES\n");
-        for (Cliente c : clienteRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO clientes (id, username, email, password, full_name, telefone, profile_image, created_at) VALUES (%d, %s, %s, %s, %s, %s, %s, %s);\n",
-                c.getId(), q(c.getUsername()), q(c.getEmail()), q(c.getPassword()),
-                q(c.getFullName()), q(c.getTelefone()), q(c.getProfileImage()),
-                c.getCreatedAt() != null ? q(c.getCreatedAt().format(FMT)) : "NULL"
-            ));
-        }
+        // Clientes
+        try {
+            sql.append("\n-- CLIENTES\n");
+            for (Cliente c : clienteRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO clientes (id, username, email, password, full_name, telefone, profile_image, created_at) VALUES (%d, %s, %s, %s, %s, %s, %s, %s);\n",
+                    c.getId(), q(c.getUsername()), q(c.getEmail()), q(c.getPassword()),
+                    q(c.getFullName()), q(c.getTelefone()), q(c.getProfileImage()),
+                    c.getCreatedAt() != null ? q(c.getCreatedAt().format(FMT)) : "NULL"
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em clientes: {}", e.getMessage()); }
 
         // Admins
-        sql.append("\n-- ADMINS\n");
-        for (Admin a : adminRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO admins (id, nome, email, password) VALUES (%d, %s, %s, %s);\n",
-                a.getId(), q(a.getNome()), q(a.getEmail()), q(a.getPassword())
-            ));
-        }
+        try {
+            sql.append("\n-- ADMINS\n");
+            for (Admin a : adminRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO admins (id, nome, email, password) VALUES (%d, %s, %s, %s);\n",
+                    a.getId(), q(a.getNome()), q(a.getEmail()), q(a.getPassword())
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em admins: {}", e.getMessage()); }
 
         // Agendamentos
-        sql.append("\n-- AGENDAMENTOS\n");
-        for (Agendamento ag : agendamentoRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO agendamentos (id, cliente_id, artista_id, data_hora, servico, descricao, status, preco, avaliacao, observacoes, valor_pago, valor_pendente, created_at, regiao, largura, altura, tags, imagem_referencia_url) VALUES (%d, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);\n",
-                ag.getId(),
-                ag.getCliente().getId(),
-                ag.getArtista() != null ? ag.getArtista().getId().toString() : "NULL",
-                q(ag.getDataHora() != null ? ag.getDataHora().format(FMT) : null),
-                q(ag.getServico()), q(ag.getDescricao()), q(ag.getStatus()),
-                ag.getPreco() != null ? ag.getPreco().toString() : "NULL",
-                ag.getAvaliacao() != null ? ag.getAvaliacao().toString() : "NULL",
-                q(ag.getObservacoes()),
-                ag.getValorPago() != null ? ag.getValorPago().toString() : "NULL",
-                ag.getValorPendente() != null ? ag.getValorPendente().toString() : "NULL",
-                ag.getCreatedAt() != null ? q(ag.getCreatedAt().format(FMT)) : "NULL",
-                q(ag.getRegiao()),
-                ag.getLargura() != null ? ag.getLargura().toString() : "NULL",
-                ag.getAltura() != null ? ag.getAltura().toString() : "NULL",
-                q(ag.getTags()), q(ag.getImagemReferenciaUrl())
-            ));
-        }
+        try {
+            sql.append("\n-- AGENDAMENTOS\n");
+            for (Agendamento ag : agendamentoRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO agendamentos (id, cliente_id, artista_id, data_hora, servico, descricao, status, preco, avaliacao, observacoes, valor_pago, valor_pendente, created_at, regiao, largura, altura, tags, imagem_referencia_url) VALUES (%d, %d, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);\n",
+                    ag.getId(),
+                    ag.getCliente().getId(),
+                    ag.getArtista() != null ? ag.getArtista().getId().toString() : "NULL",
+                    q(ag.getDataHora() != null ? ag.getDataHora().format(FMT) : null),
+                    q(ag.getServico()), q(ag.getDescricao()), q(ag.getStatus()),
+                    ag.getPreco() != null ? ag.getPreco().toString() : "NULL",
+                    ag.getAvaliacao() != null ? ag.getAvaliacao().toString() : "NULL",
+                    q(ag.getObservacoes()),
+                    ag.getValorPago() != null ? ag.getValorPago().toString() : "NULL",
+                    ag.getValorPendente() != null ? ag.getValorPendente().toString() : "NULL",
+                    ag.getCreatedAt() != null ? q(ag.getCreatedAt().format(FMT)) : "NULL",
+                    q(ag.getRegiao()),
+                    ag.getLargura() != null ? ag.getLargura().toString() : "NULL",
+                    ag.getAltura() != null ? ag.getAltura().toString() : "NULL",
+                    q(ag.getTags()), q(ag.getImagemReferenciaUrl())
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em agendamentos: {}", e.getMessage()); }
 
         // Portfolio
-        sql.append("\n-- PORTFOLIO_ITEMS\n");
-        for (PortfolioItem p : portfolioRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO portfolio_items (id, artista_id, imagem_url, categoria, descricao) VALUES (%d, %d, %s, %s, %s);\n",
-                p.getId(), p.getArtista().getId(),
-                q(p.getImagemUrl()), q(p.getCategoria()), q(p.getDescricao())
-            ));
-        }
+        try {
+            sql.append("\n-- PORTFOLIO_ITEMS\n");
+            for (PortfolioItem p : portfolioRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO portfolio_items (id, artista_id, imagem_url, categoria, descricao) VALUES (%d, %d, %s, %s, %s);\n",
+                    p.getId(), p.getArtista().getId(),
+                    q(p.getImagemUrl()), q(p.getCategoria()), q(p.getDescricao())
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em portfolio: {}", e.getMessage()); }
 
         // Disponibilidade
-        sql.append("\n-- DISPONIBILIDADE_ARTISTAS\n");
-        for (DisponibilidadeArtista d : disponibilidadeRepository.findAll()) {
-            sql.append(String.format(
-                "INSERT INTO disponibilidade_artistas (id, artista_id, dia_semana, hora_inicio, hora_fim, duracao_slot_minutos, ativo) VALUES (%d, %d, %d, %s, %s, %d, %s);\n",
-                d.getId(), d.getArtista().getId(), d.getDiaSemana(),
-                q(d.getHoraInicio()), q(d.getHoraFim()),
-                d.getDuracaoSlotMinutos(),
-                d.getAtivo() != null && d.getAtivo() ? "1" : "0"
-            ));
-        }
+        try {
+            sql.append("\n-- DISPONIBILIDADE_ARTISTAS\n");
+            for (DisponibilidadeArtista d : disponibilidadeRepository.findAll()) {
+                sql.append(String.format(
+                    "INSERT INTO disponibilidade_artistas (id, artista_id, dia_semana, hora_inicio, hora_fim, duracao_slot_minutos, ativo) VALUES (%d, %d, %d, %s, %s, %d, %s);\n",
+                    d.getId(), d.getArtista().getId(), d.getDiaSemana(),
+                    q(d.getHoraInicio()), q(d.getHoraFim()),
+                    d.getDuracaoSlotMinutos(),
+                    d.getAtivo() != null && d.getAtivo() ? "1" : "0"
+                ));
+            }
+        } catch (Exception e) { log.error("Backup: erro em disponibilidade: {}", e.getMessage()); }
 
         return sql.toString();
     }

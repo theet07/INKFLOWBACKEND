@@ -72,6 +72,7 @@ public class SecurityConfig {
                 // Rotas exclusivas de ADMIN
                 .requestMatchers("/api/diagnostic/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/clientes").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/admins").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/agendamentos/{id}").hasAnyRole("ADMIN")

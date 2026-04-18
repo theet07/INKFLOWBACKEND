@@ -25,6 +25,8 @@ public class ClienteController {
     @Autowired
     private FotoService fotoService;
 
+    private static final String GMAIL_REGEX = "^[^@]+@gmail\.com$";
+
     @GetMapping
     public List<Cliente> getAllClientes() {
         return clienteService.getAllClientes();
@@ -48,6 +50,8 @@ public class ClienteController {
 
     @PostMapping
     public ResponseEntity<?> createCliente(@RequestBody Cliente cliente) {
+        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+            return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
         if (clienteService.existsByUsername(cliente.getUsername()))
             return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
         if (clienteService.existsByEmail(cliente.getEmail()))

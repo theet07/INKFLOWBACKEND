@@ -76,6 +76,7 @@ public class ClienteService {
         cliente.setCodigoVerificacao(codigo);
         cliente.setContaVerificada(false);
         clienteRepository.save(cliente);
+        System.out.println("[OTP] Codigo gerado para " + cliente.getEmail() + ": " + codigo);
         return codigo;
     }
 
@@ -84,13 +85,36 @@ public class ClienteService {
      * Retorna o cliente ativado ou empty se o codigo for invalido.
      */
     public Optional<Cliente> verificarCodigo(String email, String codigo) {
-        return clienteRepository.findByEmail(email).map(cliente -> {
-            if (codigo != null && codigo.equals(cliente.getCodigoVerificacao())) {
-                cliente.setContaVerificada(true);
-                cliente.setCodigoVerificacao(null);
-                return clienteRepository.save(cliente);
-            }
-            return null;
-        });
+        Optional<Cliente> clienteOpt = clienteRepository.findByEmail(email);
+
+        if (clienteOpt.isEmpty()) {
+            System.out.println("[OTP] Email nao encontrado no banco: " + email);
+            return Optional.empty();
+        }
+
+        Cliente cliente = clienteOpt.get();
+        String codigoBanco = cliente.getCodigoVerificacao();
+        String codigoRecebido = codigo != null ? codigo.trim() : null;
+
+        System.out.println("[OTP] Email: " + email);
+        System.out.println("[OTP] Codigo recebido: '" + codigoRecebido + "'");
+        System.out.println("[OTP] Codigo no banco:  '" + codigoBanco + "'");
+        System.out.println("[OTP] Conta ja verificada: " + cliente.getContaVerificada());
+
+        if (codigoRecebido == null || codigoBanco == null) {
+            System.out.println("[OTP] Falha: codigo nulo.");
+            return Optional.empty();
+        }
+
+        if (!codigoRecebido.equals(codigoBanco)) {
+            System.out.println("[OTP] Falha: codigos nao batem.");
+            return Optional.empty();
+        }
+
+        cliente.setContaVerificada(true);
+        cliente.setCodigoVerificacao(null);
+        Cliente salvo = clienteRepository.save(cliente);
+        System.out.println("[OTP] Sucesso: conta verificada para " + email);
+        return Optional.of(salvo);
     }
 }

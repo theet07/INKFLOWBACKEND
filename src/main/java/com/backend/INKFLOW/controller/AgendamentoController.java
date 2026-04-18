@@ -37,10 +37,21 @@ public class AgendamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /** Retorna agendamentos de um cliente. O clienteId e validado por ownership no PATCH /status. */
+    /** Retorna agendamentos de um cliente. Ownership: apenas o proprio cliente ou ADMIN. */
     @GetMapping("/cliente/{clienteId}")
-    public List<Agendamento> getByCliente(@PathVariable Long clienteId) {
-        return agendamentoService.getAgendamentosByClienteId(clienteId);
+    public ResponseEntity<?> getByCliente(@PathVariable Long clienteId, Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            boolean isOwner = agendamentoService.getAgendamentosByClienteId(clienteId)
+                    .stream().findFirst()
+                    .map(ag -> ag.getCliente().getEmail().equals(auth.getName()))
+                    .orElse(true);
+            if (!isOwner)
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Acesso negado."));
+        }
+        return ResponseEntity.ok(agendamentoService.getAgendamentosByClienteId(clienteId));
     }
 
     /**

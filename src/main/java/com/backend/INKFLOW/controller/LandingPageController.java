@@ -8,7 +8,9 @@ import com.backend.INKFLOW.service.ArtistaService;
 import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.DisponibilidadeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -39,6 +41,12 @@ public class LandingPageController {
 
     @Autowired
     private ClienteService clienteService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Value("${landing.default.client.password:inkflow@landing2025}")
+    private String defaultClientPassword;
 
     /**
      * GET /api/v1/artists/{artistId}/availability?ano=2025&mes=5
@@ -142,7 +150,7 @@ public class LandingPageController {
                     novo.setUsername(username);
                     novo.setFullName(clienteNome != null ? clienteNome : clienteEmail.split("@")[0]);
                     novo.setTelefone((String) body.get("clienteTelefone"));
-                    novo.setPassword("$2a$12$toQ38NJDsi349i1n.65MWuWFdALytJ2xzhzrOwq6JwyM6GyBINbIa");
+                    novo.setPassword(passwordEncoder.encode(defaultClientPassword));
                     return clienteService.saveCliente(novo);
                 });
 

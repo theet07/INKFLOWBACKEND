@@ -5,6 +5,7 @@ import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.FotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
@@ -14,24 +15,25 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/clientes")
-@CrossOrigin(origins = {"https://inkflowfrontend.vercel.app", "http://localhost:5173"})
 public class ClienteController {
 
     private static final Logger log = LoggerFactory.getLogger(ClienteController.class);
-    
+
     @Autowired
     private ClienteService clienteService;
 
     @Autowired
     private FotoService fotoService;
-    
+
     @GetMapping
     public List<Cliente> getAllClientes() {
         return clienteService.getAllClientes();
     }
-    
+
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> getClienteById(@PathVariable Long id) {
+    public ResponseEntity<?> getClienteById(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -46,17 +48,17 @@ public class ClienteController {
 
     @PostMapping
     public ResponseEntity<?> createCliente(@RequestBody Cliente cliente) {
-        if (clienteService.existsByUsername(cliente.getUsername())) {
+        if (clienteService.existsByUsername(cliente.getUsername()))
             return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
-        }
-        if (clienteService.existsByEmail(cliente.getEmail())) {
+        if (clienteService.existsByEmail(cliente.getEmail()))
             return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
-        }
         return ResponseEntity.ok(clienteService.saveCliente(cliente));
     }
-    
+
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> updateCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
+    public ResponseEntity<?> updateCliente(@PathVariable Long id, @RequestBody Cliente cliente, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id)
                 .map(existingCliente -> {
                     existingCliente.setFullName(cliente.getFullName());
@@ -66,9 +68,11 @@ public class ClienteController {
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCliente(@PathVariable Long id) {
+    public ResponseEntity<?> deleteCliente(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         try {
             clienteService.deleteCliente(id);
             return ResponseEntity.ok().build();
@@ -79,7 +83,9 @@ public class ClienteController {
     }
 
     @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")
-    public ResponseEntity<?> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id).map(cliente -> {
             try {
                 if (cliente.getProfileImage() != null) {
@@ -98,7 +104,9 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}/foto")
-    public ResponseEntity<?> deleteFoto(@PathVariable Long id) {
+    public ResponseEntity<?> deleteFoto(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id).map(cliente -> {
             try {
                 if (cliente.getProfileImage() != null) {
@@ -113,5 +121,19 @@ public class ClienteController {
                 return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao remover foto."));
             }
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Verifica se o usuario autenticado e o dono do recurso ou ADMIN.
+     * Extrai o email do JWT e compara com o email do cliente no banco.
+     */
+    private boolean isOwnerOrAdmin(Long clienteId, Authentication auth) {
+        if (auth == null) return false;
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) return true;
+        return clienteService.getClienteById(clienteId)
+                .map(c -> c.getEmail().equals(auth.getName()))
+                .orElse(false);
     }
 }

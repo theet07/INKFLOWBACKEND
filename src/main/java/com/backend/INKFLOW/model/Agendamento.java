@@ -55,7 +55,7 @@ public class Agendamento {
     @Column(name = "imagem_referencia_url", length = 1000, nullable = true)
     private String imagemReferenciaUrl;
 
-    @Column(name = "avaliado", nullable = false)
+    @Column(name = "avaliado", nullable = false, columnDefinition = "boolean default false")
     private boolean avaliado = false;
 
     public Agendamento() {}

@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.VerificacaoDTO;
 import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.EmailService;
@@ -120,9 +121,9 @@ public class ClienteController {
      * Body: { "email": "...", "codigo": "123456" }
      */
     @PostMapping("/verificar-codigo")
-    public ResponseEntity<?> verificarCodigo(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
-        String codigo = body.get("codigo");
+    public ResponseEntity<?> verificarCodigo(@RequestBody VerificacaoDTO dados) {
+        String email = dados.getEmail();
+        String codigo = dados.getCodigo();
 
         if (email == null || codigo == null)
             return ResponseEntity.badRequest().body(Map.of("message", "email e codigo sao obrigatorios."));

@@ -86,9 +86,9 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("success", true, "token", token, "user", clienteUser));
         }
 
-        return ResponseEntity.badRequest().body(Map.of(
+        return ResponseEntity.status(401).body(Map.of(
             "success", false,
-            "message", "Email ou senha incorretos"
+            "message", "Credenciais invalidas."
         ));
     }
 }

@@ -128,23 +128,27 @@ public class ClienteController {
         if (email == null || codigo == null)
             return ResponseEntity.badRequest().body(Map.of("message", "email e codigo sao obrigatorios."));
 
-        return clienteService.verificarCodigo(email, codigo)
-                .map(cliente -> {
-                    String token = jwtUtil.generateToken(cliente.getEmail(), "ROLE_CLIENTE");
-                    return ResponseEntity.ok(Map.of(
-                            "success", true,
-                            "message", "Conta verificada com sucesso!",
-                            "token", token,
-                            "user", Map.of(
-                                    "id", cliente.getId(),
-                                    "email", cliente.getEmail(),
-                                    "nome", cliente.getFullName() != null ? cliente.getFullName() : "",
-                                    "role", "ROLE_CLIENTE"
-                            )
-                    ));
-                })
-                .orElse(ResponseEntity.status(422)
-                        .body(Map.of("message", "Codigo invalido ou expirado.")));
+        try {
+            return clienteService.verificarCodigo(email, codigo)
+                    .map(cliente -> {
+                        String token = jwtUtil.generateToken(cliente.getEmail(), "ROLE_CLIENTE");
+                        return ResponseEntity.ok(Map.of(
+                                "success", true,
+                                "message", "Conta verificada com sucesso!",
+                                "token", token,
+                                "user", Map.of(
+                                        "id", cliente.getId(),
+                                        "email", cliente.getEmail(),
+                                        "nome", cliente.getFullName() != null ? cliente.getFullName() : "",
+                                        "role", "ROLE_CLIENTE"
+                                )
+                        ));
+                    })
+                    .orElse(ResponseEntity.status(422)
+                            .body(Map.of("message", "Codigo invalido ou expirado.")));
+        } catch (ClienteService.TooManyOtpAttemptsException e) {
+            return ResponseEntity.status(429).body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")

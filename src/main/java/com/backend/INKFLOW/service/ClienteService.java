@@ -70,19 +70,23 @@ public class ClienteService {
         return clienteRepository.findByEmail(email);
     }
 
-    /** Gera um codigo OTP de 6 digitos, salva no cliente e retorna o codigo. */
+    /** Gera um codigo OTP de 6 digitos, zera tentativas e salva. */
     public String gerarEsalvarCodigo(Cliente cliente) {
         String codigo = String.format("%06d", new Random().nextInt(999999));
         cliente.setCodigoVerificacao(codigo);
         cliente.setContaVerificada(false);
+        cliente.setTentativasOtp(0);
         clienteRepository.save(cliente);
         System.out.println("[OTP] Codigo gerado para " + cliente.getEmail() + ": " + codigo);
         return codigo;
     }
 
     /**
-     * Verifica o codigo OTP. Se correto, ativa a conta e limpa o codigo.
-     * Retorna o cliente ativado ou empty se o codigo for invalido.
+     * Verifica o codigo OTP com rate limiting de 5 tentativas.
+     * Retorna:
+     *   Optional.of(cliente) — sucesso
+     *   Optional.empty()     — codigo errado ou nulo
+     *   Lanca TooManyAttemptsException — limite atingido (429)
      */
     public Optional<Cliente> verificarCodigo(String email, String codigo) {
         Optional<Cliente> clienteOpt = clienteRepository.findByEmail(email);
@@ -99,22 +103,33 @@ public class ClienteService {
         System.out.println("[OTP] Email: " + email);
         System.out.println("[OTP] Codigo recebido: '" + codigoRecebido + "'");
         System.out.println("[OTP] Codigo no banco:  '" + codigoBanco + "'");
-        System.out.println("[OTP] Conta ja verificada: " + cliente.getContaVerificada());
+        System.out.println("[OTP] Tentativas: " + cliente.getTentativasOtp());
 
-        if (codigoRecebido == null || codigoBanco == null) {
-            System.out.println("[OTP] Falha: codigo nulo.");
+        // Verifica limite de tentativas
+        if (cliente.getTentativasOtp() >= 5) {
+            System.out.println("[OTP] Limite de tentativas atingido para: " + email);
+            throw new TooManyOtpAttemptsException("Limite de tentativas excedido. Solicite um novo codigo.");
+        }
+
+        if (codigoRecebido == null || codigoBanco == null || !codigoRecebido.equals(codigoBanco)) {
+            // Incrementa tentativas e salva
+            cliente.setTentativasOtp(cliente.getTentativasOtp() + 1);
+            clienteRepository.save(cliente);
+            System.out.println("[OTP] Falha: codigo incorreto. Tentativas: " + cliente.getTentativasOtp());
             return Optional.empty();
         }
 
-        if (!codigoRecebido.equals(codigoBanco)) {
-            System.out.println("[OTP] Falha: codigos nao batem.");
-            return Optional.empty();
-        }
-
+        // Sucesso: ativa conta e zera tudo
         cliente.setContaVerificada(true);
         cliente.setCodigoVerificacao(null);
+        cliente.setTentativasOtp(0);
         Cliente salvo = clienteRepository.save(cliente);
         System.out.println("[OTP] Sucesso: conta verificada para " + email);
         return Optional.of(salvo);
+    }
+
+    /** Excecao interna para sinalizar limite de tentativas OTP (429). */
+    public static class TooManyOtpAttemptsException extends RuntimeException {
+        public TooManyOtpAttemptsException(String message) { super(message); }
     }
 }

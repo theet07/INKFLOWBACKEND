@@ -96,8 +96,9 @@ public class AgendamentoController {
     }
 
     @GetMapping("/status/{status}")
-    public List<Agendamento> getAgendamentosByStatus(@PathVariable String status) {
-        return agendamentoService.getAgendamentosByStatus(status);
+    public List<AgendamentoDashboard> getAgendamentosByStatus(@PathVariable String status) {
+        return agendamentoService.getAgendamentosByStatus(status)
+                .stream().map(AgendamentoDashboard::new).toList();
     }
 
     @Deprecated

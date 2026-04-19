@@ -80,14 +80,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/admins").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/clientes").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/agendamentos/{id}").hasAnyRole("ADMIN")
-
-                // Rotas exclusivas de ARTISTA ou ADMIN
-                .requestMatchers(HttpMethod.GET, "/api/agendamentos").hasAnyRole("ARTISTA", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/agendamentos/{id}").hasRole("ADMIN")
+                // ARTISTA ou ADMIN
+                // #8 — ADMIN apenas: artista nao deve ver todos os agendamentos do sistema
+                .requestMatchers(HttpMethod.GET, "/api/agendamentos").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/agendamentos/artista/{artistaId}").hasAnyRole("ARTISTA", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/agendamentos/status/{status}").hasAnyRole("ARTISTA", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/agendamentos/{id}").hasAnyRole("ARTISTA", "ADMIN")
+                // #9 — role desconhecida cai aqui sem fallback; validacao de role esta no service
                 .requestMatchers(HttpMethod.PATCH, "/api/agendamentos/{id}/status").hasAnyRole("ARTISTA", "ADMIN", "CLIENTE")
+                // #7 — avaliacao restrita ao CLIENTE: artista e admin nao podem avaliar
+                .requestMatchers(HttpMethod.PUT, "/api/appointments/{id}/avaliar").hasRole("CLIENTE")
 
                 // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()

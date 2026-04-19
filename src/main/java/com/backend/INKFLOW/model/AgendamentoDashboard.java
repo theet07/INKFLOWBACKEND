@@ -26,6 +26,7 @@ public class AgendamentoDashboard {
     private Double valorPendente;
     private Integer avaliacao;
     private String observacoes;
+    private boolean avaliado;
     private ClienteResumo cliente;
 
     public AgendamentoDashboard(Agendamento ag) {
@@ -43,6 +44,7 @@ public class AgendamentoDashboard {
         this.valorPendente = ag.getValorPendente();
         this.avaliacao = ag.getAvaliacao();
         this.observacoes = ag.getObservacoes();
+        this.avaliado = ag.isAvaliado();
         this.tags = ag.getTags() != null && !ag.getTags().isBlank()
                 ? Arrays.stream(ag.getTags().split(","))
                         .map(String::trim)
@@ -70,6 +72,7 @@ public class AgendamentoDashboard {
     public Double getValorPendente() { return valorPendente; }
     public Integer getAvaliacao() { return avaliacao; }
     public String getObservacoes() { return observacoes; }
+    public boolean isAvaliado() { return avaliado; }
     public ClienteResumo getCliente() { return cliente; }
 
     // DTO interno do cliente — apenas dados de exibição, sem password

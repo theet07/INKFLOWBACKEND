@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping({"api/artistas", "/api/artists"})
+@RequestMapping({"/api/artistas", "/api/artists"})
 public class ArtistaController {
 
     @Autowired

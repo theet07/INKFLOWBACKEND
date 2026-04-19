@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "artistas")
@@ -27,6 +28,7 @@ public class Artista {
     @Column(unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(name = "senha")
     private String password;
 

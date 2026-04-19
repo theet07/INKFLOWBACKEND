@@ -292,13 +292,28 @@ public class BackupService {
     private void enviarWebhook(String conteudo) {
         try {
             String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = "inkflow_backup_" + ts + ".sql";
+            String boundary = "----InkFlowBackup" + ts;
+
+            byte[] fileBytes = conteudo.getBytes(StandardCharsets.UTF_8);
+            String partHeader =
+                "--" + boundary + "\r\n" +
+                "Content-Disposition: form-data; name=\"files[0]\"; filename=\"" + filename + "\"\r\n" +
+                "Content-Type: application/octet-stream\r\n\r\n";
+            String partFooter = "\r\n--" + boundary + "--\r\n";
+
+            byte[] headerBytes = partHeader.getBytes(StandardCharsets.UTF_8);
+            byte[] footerBytes = partFooter.getBytes(StandardCharsets.UTF_8);
+            byte[] body = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
+            System.arraycopy(headerBytes, 0, body, 0, headerBytes.length);
+            System.arraycopy(fileBytes, 0, body, headerBytes.length, fileBytes.length);
+            System.arraycopy(footerBytes, 0, body, headerBytes.length + fileBytes.length, footerBytes.length);
+
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
-                    .header("Content-Type", "text/plain; charset=UTF-8")
-                    .header("X-Backup-Filename", "inkflow_backup_" + ts + ".sql")
-                    .header("X-Backup-Source", "inkflow-backend")
-                    .POST(HttpRequest.BodyPublishers.ofString(conteudo, StandardCharsets.UTF_8))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

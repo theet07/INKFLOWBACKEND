@@ -32,10 +32,23 @@ public class AgendamentoController {
 
     /** Busca um agendamento pelo ID. */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getAgendamentoById(@PathVariable Long id) {
+    public ResponseEntity<?> getAgendamentoById(@PathVariable Long id, Authentication auth) {
         return agendamentoService.getAgendamentoById(id)
-                .map(ag -> ResponseEntity.ok(new AgendamentoDashboard(ag)))
-                .orElse(ResponseEntity.notFound().build());
+                .map(ag -> {
+                    boolean isAdmin = auth.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                    boolean isArtista = ag.getArtista() != null &&
+                            ag.getArtista().getEmail().equals(auth.getName());
+                    boolean isCliente = ag.getCliente() != null &&
+                            ag.getCliente().getEmail().equals(auth.getName());
+
+                    if (!isAdmin && !isArtista && !isCliente)
+                        return ResponseEntity.status(403)
+                                .body(Map.of("message", "Acesso negado."));
+
+                    return ResponseEntity.ok(new AgendamentoDashboard(ag));
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /** Retorna agendamentos de um cliente. Ownership: apenas o proprio cliente ou ADMIN. */

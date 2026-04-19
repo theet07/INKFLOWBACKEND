@@ -37,23 +37,18 @@ public class LandingPageController {
                                               @RequestParam(required = false) Integer ano,
                                               @RequestParam(required = false) Integer mes) {
         try {
-            Optional<Artista> artista = artistaService.getById(artistId);
-            if (artista.isEmpty()) {
+            if (artistaService.getById(artistId).isEmpty())
                 return ResponseEntity.notFound().build();
-            }
 
             int anoParam = ano != null ? ano : LocalDate.now().getYear();
             int mesParam = mes != null ? mes : LocalDate.now().getMonthValue();
 
-            if (mesParam < 1 || mesParam > 12) {
+            if (mesParam < 1 || mesParam > 12)
                 return ResponseEntity.badRequest().body(Map.of("message", "Mes invalido."));
-            }
 
-            Map<String, List<String>> calendario =
-                    disponibilidadeService.getCalendarioMensal(artistId, anoParam, mesParam);
-
-            // Converte para array [{data, disponivel, slots}] esperado pelo frontend
-            List<Map<String, Object>> dias = calendario.entrySet().stream()
+            List<Map<String, Object>> dias = disponibilidadeService
+                    .getCalendarioMensal(artistId, anoParam, mesParam)
+                    .entrySet().stream()
                     .map(e -> {
                         Map<String, Object> dia = new HashMap<>();
                         dia.put("data", e.getKey());

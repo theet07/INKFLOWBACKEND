@@ -59,6 +59,10 @@ public class BackupController {
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".sql";
             log.info("Download de backup solicitado: {}", filename);
+            if (backupService.isWebhookConfigurado()) {
+                backupService.enviarWebhook(sql);
+                log.info("Backup enviado para o Discord via download manual.");
+            }
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.parseMediaType("application/sql"))

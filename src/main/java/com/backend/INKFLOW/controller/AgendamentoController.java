@@ -162,13 +162,23 @@ public class AgendamentoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Agendamento> updateAgendamento(@PathVariable Long id, @RequestBody Agendamento agendamento) {
+    public ResponseEntity<?> updateAgendamento(@PathVariable Long id,
+                                                @RequestBody Agendamento agendamento,
+                                                Authentication auth) {
         return agendamentoService.getAgendamentoById(id)
                 .map(existing -> {
+                    boolean isAdmin = auth.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                    boolean isOwner = existing.getArtista() != null &&
+                            existing.getArtista().getEmail().equals(auth.getName());
+                    if (!isAdmin && !isOwner)
+                        return ResponseEntity.status(403)
+                                .body(Map.of("message", "Acesso negado."));
                     agendamento.setId(id);
-                    return ResponseEntity.ok(agendamentoService.saveAgendamento(agendamento));
+                    return ResponseEntity.ok(
+                            new AgendamentoDashboard(agendamentoService.saveAgendamento(agendamento)));
                 })
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

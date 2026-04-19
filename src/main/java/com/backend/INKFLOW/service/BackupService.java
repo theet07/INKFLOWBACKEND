@@ -289,7 +289,7 @@ public class BackupService {
      * Envia o conteudo SQL para o webhook configurado via POST com Content-Type text/plain.
      * Configure BACKUP_WEBHOOK_URL com uma URL de destino (ex: webhook.site, servidor proprio).
      */
-    private void enviarWebhook(String conteudo) {
+    public void enviarWebhook(String conteudo) {
         try {
             String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             String filename = "inkflow_backup_" + ts + ".sql";

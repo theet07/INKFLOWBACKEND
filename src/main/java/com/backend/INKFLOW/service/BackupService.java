@@ -319,6 +319,7 @@ public class BackupService {
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             log.info("Webhook de backup enviado. Status HTTP: {}", response.statusCode());
+            log.info("Resposta do Discord: {}", response.body());
         } catch (Exception e) {
             log.error("Falha ao enviar webhook de backup: {}", e.getMessage(), e);
         }

@@ -39,9 +39,8 @@ public class BackupController {
             return ResponseEntity.ok(Map.of(
                     "status", "OK",
                     "servico", "BackupService",
-                    "proximoBackup", "Diariamente as 00:00 (UTC)",
-                    "timestamp", agora.toString(),
-                    "webhookConfigurado", backupService.isWebhookConfigurado()
+                    "proximoBackup", "Diariamente as 03:00 UTC",
+                    "timestamp", agora.toString()
             ));
         } catch (Exception e) {
             log.error("Erro ao consultar status do backup: {}", e.getMessage(), e);
@@ -76,8 +75,8 @@ public class BackupController {
     }
 
     /** GET /api/v1/admin/backup/testar-webhook — dispara o envio para o Discord imediatamente. */
-    @GetMapping({"/api/v1/admin/backup/testar-webhook", "/api/admin/backup/testar-webhook"})
-    public ResponseEntity<?> testarWebhook() {
+    @GetMapping({"/api/v1/admin/backup/testar-backup", "/api/admin/backup/testar-backup"})
+    public ResponseEntity<?> testarBackup() {
         try {
             String sql = backupService.gerarSql();
             String filename = "inkflow_backup_"

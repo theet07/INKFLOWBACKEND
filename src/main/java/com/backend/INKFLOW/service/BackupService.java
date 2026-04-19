@@ -15,27 +15,17 @@ import com.backend.INKFLOW.repository.PortfolioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Service
 public class BackupService {
 
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    @Value("${backup.webhook.url:}")
-    private String webhookUrl;
 
     @Autowired private ClienteRepository clienteRepository;
     @Autowired private ArtistaRepository artistaRepository;
@@ -45,15 +35,6 @@ public class BackupService {
     @Autowired private DisponibilidadeRepository disponibilidadeRepository;
     @Autowired private EmailService emailService;
 
-    public boolean isWebhookConfigurado() {
-        return webhookUrl != null && !webhookUrl.isBlank();
-    }
-
-    /**
-     * Gera o conteudo SQL completo com todos os dados atuais do banco.
-     * Cada tabela e processada em bloco try-catch independente para que
-     * uma falha isolada nao derrube o backup inteiro.
-     */
     public String gerarSql() {
         StringBuilder sql = new StringBuilder();
         String ts = LocalDateTime.now().format(FMT);
@@ -62,11 +43,10 @@ public class BackupService {
         sql.append("-- InkFlow — Disaster Recovery Backup\n");
         sql.append("-- Gerado em: ").append(ts).append("\n");
         sql.append("-- Rodar em um banco SQL Server vazio para restauracao completa.\n");
+        sql.append("-- ATENCAO: senhas substituidas por [REDACTED] por seguranca.\n");
         sql.append("-- ============================================================\n\n");
 
-        // --------------------------------------------------------
-        // 1. ARTISTAS (sem FK)
-        // --------------------------------------------------------
+        // 1. ARTISTAS
         sql.append("-- ========================\n-- ARTISTAS\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='artistas' AND xtype='U')\n");
         sql.append("CREATE TABLE artistas (\n");
@@ -94,9 +74,7 @@ public class BackupService {
             sql.append("SET IDENTITY_INSERT artistas OFF;\n");
         } catch (Exception e) { log.error("Backup: erro em artistas: {}", e.getMessage()); }
 
-        // --------------------------------------------------------
-        // 2. CLIENTES (sem FK)
-        // --------------------------------------------------------
+        // 2. CLIENTES
         sql.append("\n-- ========================\n-- CLIENTES\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='clientes' AND xtype='U')\n");
         sql.append("CREATE TABLE clientes (\n");
@@ -122,9 +100,7 @@ public class BackupService {
             sql.append("SET IDENTITY_INSERT clientes OFF;\n");
         } catch (Exception e) { log.error("Backup: erro em clientes: {}", e.getMessage()); }
 
-        // --------------------------------------------------------
-        // 3. ADMINS (sem FK)
-        // --------------------------------------------------------
+        // 3. ADMINS
         sql.append("\n-- ========================\n-- ADMINS\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='admins' AND xtype='U')\n");
         sql.append("CREATE TABLE admins (\n");
@@ -144,9 +120,7 @@ public class BackupService {
             sql.append("SET IDENTITY_INSERT admins OFF;\n");
         } catch (Exception e) { log.error("Backup: erro em admins: {}", e.getMessage()); }
 
-        // --------------------------------------------------------
-        // 4. AGENDAMENTOS (FK: clientes, artistas)
-        // --------------------------------------------------------
+        // 4. AGENDAMENTOS
         sql.append("\n-- ========================\n-- AGENDAMENTOS\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='agendamentos' AND xtype='U')\n");
         sql.append("CREATE TABLE agendamentos (\n");
@@ -195,9 +169,7 @@ public class BackupService {
             sql.append("SET IDENTITY_INSERT agendamentos OFF;\n");
         } catch (Exception e) { log.error("Backup: erro em agendamentos: {}", e.getMessage()); }
 
-        // --------------------------------------------------------
-        // 5. PORTFOLIO_ITEMS (FK: artistas)
-        // --------------------------------------------------------
+        // 5. PORTFOLIO_ITEMS
         sql.append("\n-- ========================\n-- PORTFOLIO_ITEMS\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='portfolio_items' AND xtype='U')\n");
         sql.append("CREATE TABLE portfolio_items (\n");
@@ -220,9 +192,7 @@ public class BackupService {
             sql.append("SET IDENTITY_INSERT portfolio_items OFF;\n");
         } catch (Exception e) { log.error("Backup: erro em portfolio: {}", e.getMessage()); }
 
-        // --------------------------------------------------------
-        // 6. DISPONIBILIDADE_ARTISTAS (FK: artistas)
-        // --------------------------------------------------------
+        // 6. DISPONIBILIDADE_ARTISTAS
         sql.append("\n-- ========================\n-- DISPONIBILIDADE_ARTISTAS\n-- ========================\n");
         sql.append("IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='disponibilidade_artistas' AND xtype='U')\n");
         sql.append("CREATE TABLE disponibilidade_artistas (\n");
@@ -257,16 +227,11 @@ public class BackupService {
         return sql.toString();
     }
 
-    /** Escapa valor para SQL — retorna NULL se nulo, ou 'valor' com aspas simples escapadas. */
     private String q(String val) {
         if (val == null) return "NULL";
         return "'" + val.replace("'", "''") + "'";
     }
 
-    /**
-     * Cron diario as 00:00 — gera backup e envia via webhook se configurado.
-     * Para configurar o webhook, defina a variavel de ambiente BACKUP_WEBHOOK_URL.
-     */
     @Scheduled(cron = "0 0 3 * * *")
     public void backupAutomatico() {
         log.info(">>> GATILHO DE BACKUP ACIONADO <<<");
@@ -275,52 +240,10 @@ public class BackupService {
             String filename = "inkflow_backup_"
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".sql";
-            int linhas = conteudo.split("\n").length;
-            log.info("Backup gerado: {} linhas de SQL", linhas);
+            log.info("Backup gerado: {} linhas de SQL", conteudo.split("\n").length);
             emailService.enviarBackupEmail(conteudo, filename);
         } catch (Exception e) {
             log.error("Falha no backup automatico: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Envia o conteudo SQL para o webhook configurado via POST com Content-Type text/plain.
-     * Configure BACKUP_WEBHOOK_URL com uma URL de destino (ex: webhook.site, servidor proprio).
-     */
-    public void enviarWebhook(String conteudo) {
-        try {
-            String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = "inkflow_backup_" + ts + ".sql";
-            String boundary = "----InkFlowBackup" + ts;
-
-            byte[] fileBytes = conteudo.getBytes(StandardCharsets.UTF_8);
-            log.info("Tamanho do backup: {} KB", fileBytes.length / 1024);
-            String partHeader =
-                "--" + boundary + "\r\n" +
-                "Content-Disposition: form-data; name=\"files[0]\"; filename=\"" + filename + "\"\r\n" +
-                "Content-Type: application/octet-stream\r\n\r\n";
-            String partFooter = "\r\n--" + boundary + "--\r\n";
-
-            byte[] headerBytes = partHeader.getBytes(StandardCharsets.UTF_8);
-            byte[] footerBytes = partFooter.getBytes(StandardCharsets.UTF_8);
-            byte[] body = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
-            System.arraycopy(headerBytes, 0, body, 0, headerBytes.length);
-            System.arraycopy(fileBytes, 0, body, headerBytes.length, fileBytes.length);
-            System.arraycopy(footerBytes, 0, body, headerBytes.length + fileBytes.length, footerBytes.length);
-
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(webhookUrl))
-                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                    .header("User-Agent", "InkFlowBackup/1.0 (TCC Project)")
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            log.info("Webhook de backup enviado. Status HTTP: {}", response.statusCode());
-            log.info("Resposta do Discord: {}", response.body());
-        } catch (Exception e) {
-            log.error("Falha ao enviar webhook de backup: {}", e.getMessage(), e);
         }
     }
 }

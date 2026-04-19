@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class ClienteService {
@@ -27,6 +26,9 @@ public class ClienteService {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ClienteService.class);
+    private static final java.security.SecureRandom secureRandom = new java.security.SecureRandom();
     
     public List<Cliente> getAllClientes() {
         return clienteRepository.findAll();
@@ -71,12 +73,12 @@ public class ClienteService {
 
     /** Gera um codigo OTP de 6 digitos, zera tentativas e salva. */
     public String gerarEsalvarCodigo(Cliente cliente) {
-        String codigo = String.format("%06d", new Random().nextInt(999999));
+        String codigo = String.format("%06d", secureRandom.nextInt(1000000));
         cliente.setCodigoVerificacao(codigo);
         cliente.setContaVerificada(false);
         cliente.setTentativasOtp(0);
         clienteRepository.save(cliente);
-        System.out.println("[OTP] Codigo gerado para " + cliente.getEmail() + ": " + codigo);
+        log.debug("[OTP] Codigo gerado para {}", cliente.getEmail());
         return codigo;
     }
 
@@ -91,7 +93,7 @@ public class ClienteService {
         Optional<Cliente> clienteOpt = clienteRepository.findByEmail(email);
 
         if (clienteOpt.isEmpty()) {
-            System.out.println("[OTP] Email nao encontrado no banco: " + email);
+            log.debug("[OTP] Email nao encontrado: {}", email);
             return Optional.empty();
         }
 
@@ -99,31 +101,25 @@ public class ClienteService {
         String codigoBanco = cliente.getCodigoVerificacao();
         String codigoRecebido = codigo != null ? codigo.trim() : null;
 
-        System.out.println("[OTP] Email: " + email);
-        System.out.println("[OTP] Codigo recebido: '" + codigoRecebido + "'");
-        System.out.println("[OTP] Codigo no banco:  '" + codigoBanco + "'");
-        System.out.println("[OTP] Tentativas: " + cliente.getTentativasOtp());
+        log.debug("[OTP] Verificacao para {} — tentativas: {}", email, cliente.getTentativasOtp());
 
-        // Verifica limite de tentativas
         if (cliente.getTentativasOtp() >= 5) {
-            System.out.println("[OTP] Limite de tentativas atingido para: " + email);
+            log.debug("[OTP] Limite atingido para: {}", email);
             throw new TooManyOtpAttemptsException("Limite de tentativas excedido. Solicite um novo codigo.");
         }
 
         if (codigoRecebido == null || codigoBanco == null || !codigoRecebido.equals(codigoBanco)) {
-            // Incrementa tentativas e salva
             cliente.setTentativasOtp(cliente.getTentativasOtp() + 1);
             clienteRepository.save(cliente);
-            System.out.println("[OTP] Falha: codigo incorreto. Tentativas: " + cliente.getTentativasOtp());
+            log.debug("[OTP] Falha para {}. Tentativas: {}", email, cliente.getTentativasOtp());
             return Optional.empty();
         }
 
-        // Sucesso: ativa conta e zera tudo
         cliente.setContaVerificada(true);
         cliente.setCodigoVerificacao(null);
         cliente.setTentativasOtp(0);
         Cliente salvo = clienteRepository.save(cliente);
-        System.out.println("[OTP] Sucesso: conta verificada para " + email);
+        log.debug("[OTP] Sucesso: conta verificada para {}", email);
         return Optional.of(salvo);
     }
 

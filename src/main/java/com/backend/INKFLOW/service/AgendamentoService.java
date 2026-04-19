@@ -32,7 +32,7 @@ public class AgendamentoService {
     @Autowired private ArtistaService artistaService;
     @Autowired private PasswordEncoder passwordEncoder;
 
-    @Value("${landing.default.client.password:inkflow@landing2025}")
+    @Value("${landing.default.client.password}")
     private String defaultClientPassword;
 
     // -------------------------------------------------------------------------

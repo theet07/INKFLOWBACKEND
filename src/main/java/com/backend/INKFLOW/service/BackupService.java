@@ -88,7 +88,7 @@ public class BackupService {
                     a.getId(), q(a.getNome()), q(a.getRole()), q(a.getEspecialidades()),
                     q(a.getBio()), q(a.getFotoUrl()),
                     a.getAtivo() != null && a.getAtivo() ? "1" : "0",
-                    q(a.getEmail()), q(a.getPassword())
+                    q(a.getEmail()), "'[REDACTED]'"
                 ));
             }
             sql.append("SET IDENTITY_INSERT artistas OFF;\n");
@@ -114,7 +114,7 @@ public class BackupService {
             for (Cliente c : clienteRepository.findAll()) {
                 sql.append(String.format(
                     "INSERT INTO clientes (id, username, email, password, full_name, telefone, profile_image, created_at) VALUES (%d, %s, %s, %s, %s, %s, %s, %s);\n",
-                    c.getId(), q(c.getUsername()), q(c.getEmail()), q(c.getPassword()),
+                    c.getId(), q(c.getUsername()), q(c.getEmail()), "'[REDACTED]'",
                     q(c.getFullName()), q(c.getTelefone()), q(c.getProfileImage()),
                     c.getCreatedAt() != null ? q(c.getCreatedAt().format(FMT)) : "NULL"
                 ));
@@ -138,7 +138,7 @@ public class BackupService {
             for (Admin a : adminRepository.findAll()) {
                 sql.append(String.format(
                     "INSERT INTO admins (id, nome, email, password) VALUES (%d, %s, %s, %s);\n",
-                    a.getId(), q(a.getNome()), q(a.getEmail()), q(a.getPassword())
+                    a.getId(), q(a.getNome()), q(a.getEmail()), "'[REDACTED]'"
                 ));
             }
             sql.append("SET IDENTITY_INSERT admins OFF;\n");

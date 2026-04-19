@@ -96,6 +96,7 @@ public class AgendamentoController {
         return agendamentoService.getAgendamentosByStatus(status);
     }
 
+    @Deprecated
     @PostMapping
     public ResponseEntity<Agendamento> createAgendamento(@RequestBody Agendamento agendamento) {
         return ResponseEntity.ok(agendamentoService.saveAgendamento(agendamento));

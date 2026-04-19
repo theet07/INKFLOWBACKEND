@@ -1,25 +1,18 @@
 package com.backend.INKFLOW.controller;
 
-import com.backend.INKFLOW.model.Agendamento;
-import com.backend.INKFLOW.model.Artista;
-import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ArtistaService;
-import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.DisponibilidadeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Controller v1 dedicado ao fluxo de captura da Landing Page "Para Tatuadores".
@@ -30,23 +23,9 @@ import java.util.Optional;
 @RequestMapping("/api/v1")
 public class LandingPageController {
 
-    @Autowired
-    private DisponibilidadeService disponibilidadeService;
-
-    @Autowired
-    private AgendamentoService agendamentoService;
-
-    @Autowired
-    private ArtistaService artistaService;
-
-    @Autowired
-    private ClienteService clienteService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Value("${landing.default.client.password:inkflow@landing2025}")
-    private String defaultClientPassword;
+    @Autowired private DisponibilidadeService disponibilidadeService;
+    @Autowired private AgendamentoService agendamentoService;
+    @Autowired private ArtistaService artistaService;
 
     /**
      * GET /api/v1/artists/{artistId}/availability?ano=2025&mes=5
@@ -144,78 +123,18 @@ public class LandingPageController {
      */
     @PostMapping("/appointments")
     public ResponseEntity<?> createAppointment(@RequestBody Map<String, Object> body) {
-        // --- Validacoes basicas ---
-        Object artistIdRaw = body.get("artistId");
-        String clienteEmail = (String) body.get("clienteEmail");
-        String clienteNome = (String) body.get("clienteNome");
-        String date = (String) body.get("date");
-        String time = (String) body.get("time");
-        String description = (String) body.get("description");
-
-        if (artistIdRaw == null || clienteEmail == null || date == null || description == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Campos obrigatorios: artistId, clienteEmail, date, description."));
-        }
-
-        Integer artistId = ((Number) artistIdRaw).intValue();
-
-        // --- Resolve ou cria o cliente ---
-        Cliente cliente = clienteService.getUserByEmail(clienteEmail)
-                .orElseGet(() -> {
-                    Cliente novo = new Cliente();
-                    novo.setEmail(clienteEmail);
-                    String username = clienteEmail.split("@")[0] + "_" + System.currentTimeMillis() % 10000;
-                    novo.setUsername(username);
-                    novo.setFullName(clienteNome != null ? clienteNome : clienteEmail.split("@")[0]);
-                    novo.setTelefone((String) body.get("clienteTelefone"));
-                    novo.setPassword(passwordEncoder.encode(defaultClientPassword));
-                    return clienteService.saveCliente(novo);
-                });
-
-        // --- Resolve o artista ---
-        Optional<Artista> artistaOpt = artistaService.getById(artistId);
-        if (artistaOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Artista nao encontrado."));
-        }
-
-        // --- Monta dataHora ---
-        LocalDateTime dataHora;
         try {
-            String timeStr = time != null ? time : "12:00";
-            dataHora = LocalDateTime.parse(date + "T" + timeStr + ":00");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "Formato de data/hora invalido. Use date: YYYY-MM-DD e time: HH:mm."));
+            var salvo = agendamentoService.criarAgendamentoLandingPage(body);
+            Map<String, Object> resposta = new HashMap<>();
+            resposta.put("success", true);
+            resposta.put("id", salvo.getId());
+            resposta.put("status", salvo.getStatus());
+            resposta.put("message", "Solicitacao enviada com sucesso! O artista entrara em contato em breve.");
+            resposta.put("dataHora", salvo.getDataHora().toString());
+            return ResponseEntity.ok(resposta);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason()));
         }
-
-        // --- Monta o agendamento ---
-        Agendamento ag = new Agendamento();
-        ag.setCliente(cliente);
-        ag.setArtista(artistaOpt.get());
-        ag.setDataHora(dataHora);
-        ag.setDescricao(description);
-        ag.setStatus("PENDENTE"); // forcado — nunca confia no frontend
-        ag.setServico(body.get("estilo") != null
-                ? body.get("estilo") + " com " + artistaOpt.get().getNome()
-                : "Sessao com " + artistaOpt.get().getNome());
-
-        if (body.get("regiao") != null) ag.setRegiao((String) body.get("regiao"));
-        if (body.get("largura") instanceof Number) ag.setLargura(((Number) body.get("largura")).doubleValue());
-        if (body.get("altura") instanceof Number) ag.setAltura(((Number) body.get("altura")).doubleValue());
-        if (body.get("tags") != null) ag.setTags((String) body.get("tags"));
-        if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
-
-        Agendamento salvo = agendamentoService.saveAgendamento(ag);
-
-        Map<String, Object> resposta = new HashMap<>();
-        resposta.put("success", true);
-        resposta.put("id", salvo.getId());
-        resposta.put("status", salvo.getStatus());
-        resposta.put("message", "Solicitacao enviada com sucesso! O artista entrara em contato em breve.");
-        resposta.put("dataHora", salvo.getDataHora().toString());
-        resposta.put("artista", artistaOpt.get().getNome());
-
-        return ResponseEntity.ok(resposta);
     }
 
     /**

@@ -314,6 +314,7 @@ public class BackupService {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .header("User-Agent", "InkFlowBackup/1.0 (TCC Project)")
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 

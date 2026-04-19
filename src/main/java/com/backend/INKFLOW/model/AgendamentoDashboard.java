@@ -28,6 +28,7 @@ public class AgendamentoDashboard {
     private String observacoes;
     private boolean avaliado;
     private ClienteResumo cliente;
+    private ArtistaResumo artista;
 
     public AgendamentoDashboard(Agendamento ag) {
         this.id = ag.getId();
@@ -51,9 +52,8 @@ public class AgendamentoDashboard {
                         .filter(s -> !s.isEmpty())
                         .toList()
                 : Collections.emptyList();
-        if (ag.getCliente() != null) {
-            this.cliente = new ClienteResumo(ag.getCliente());
-        }
+        if (ag.getCliente() != null) this.cliente = new ClienteResumo(ag.getCliente());
+        if (ag.getArtista() != null) this.artista = new ArtistaResumo(ag.getArtista());
     }
 
     // Getters
@@ -74,6 +74,23 @@ public class AgendamentoDashboard {
     public String getObservacoes() { return observacoes; }
     public boolean isAvaliado() { return avaliado; }
     public ClienteResumo getCliente() { return cliente; }
+    public ArtistaResumo getArtista() { return artista; }
+
+    public static class ArtistaResumo {
+        private Integer id;
+        private String nome;
+        private String fotoUrl;
+
+        public ArtistaResumo(Artista a) {
+            this.id = a.getId();
+            this.nome = a.getNome();
+            this.fotoUrl = a.getFotoUrl();
+        }
+
+        public Integer getId() { return id; }
+        public String getNome() { return nome; }
+        public String getFotoUrl() { return fotoUrl; }
+    }
 
     // DTO interno do cliente — apenas dados de exibição, sem password
     public static class ClienteResumo {

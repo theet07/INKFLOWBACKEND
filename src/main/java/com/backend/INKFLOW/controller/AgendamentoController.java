@@ -25,15 +25,16 @@ public class AgendamentoController {
 
     /** Retorna todos os agendamentos. Acesso restrito a ROLE_ADMIN. */
     @GetMapping
-    public List<Agendamento> getAllAgendamentos() {
-        return agendamentoService.getAllAgendamentos();
+    public List<AgendamentoDashboard> getAllAgendamentos() {
+        return agendamentoService.getAllAgendamentos()
+                .stream().map(AgendamentoDashboard::new).toList();
     }
 
     /** Busca um agendamento pelo ID. */
     @GetMapping("/{id}")
-    public ResponseEntity<Agendamento> getAgendamentoById(@PathVariable Long id) {
+    public ResponseEntity<?> getAgendamentoById(@PathVariable Long id) {
         return agendamentoService.getAgendamentoById(id)
-                .map(ResponseEntity::ok)
+                .map(ag -> ResponseEntity.ok(new AgendamentoDashboard(ag)))
                 .orElse(ResponseEntity.notFound().build());
     }
 

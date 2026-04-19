@@ -101,12 +101,6 @@ public class AgendamentoController {
                 .stream().map(AgendamentoDashboard::new).toList();
     }
 
-    @Deprecated
-    @PostMapping
-    public ResponseEntity<Agendamento> createAgendamento(@RequestBody Agendamento agendamento) {
-        return ResponseEntity.ok(agendamentoService.saveAgendamento(agendamento));
-    }
-
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Long id,
                                           @RequestBody Map<String, Object> body,

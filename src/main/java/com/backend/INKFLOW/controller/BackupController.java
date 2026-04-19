@@ -78,18 +78,17 @@ public class BackupController {
     /** GET /api/v1/admin/backup/testar-webhook — dispara o envio para o Discord imediatamente. */
     @GetMapping({"/api/v1/admin/backup/testar-webhook", "/api/admin/backup/testar-webhook"})
     public ResponseEntity<?> testarWebhook() {
-        if (!backupService.isWebhookConfigurado()) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", "BACKUP_WEBHOOK_URL nao configurada."));
-        }
         try {
-            String conteudo = backupService.gerarSql();
-            backupService.enviarWebhook(conteudo);
-            return ResponseEntity.ok(Map.of("message", "Webhook disparado. Verifique o canal do Discord."));
+            String sql = backupService.gerarSql();
+            String filename = "inkflow_backup_"
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                    + ".sql";
+            emailService.enviarBackupEmail(sql, filename);
+            return ResponseEntity.ok(Map.of("message", "Backup enviado por e-mail com sucesso."));
         } catch (Exception e) {
-            log.error("Erro ao disparar webhook: {}", e.getMessage(), e);
+            log.error("Erro ao disparar backup por email: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao disparar webhook: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao enviar backup: " + e.getMessage()));
         }
     }
 }

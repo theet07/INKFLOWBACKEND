@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.ClienteDTO;
 import com.backend.INKFLOW.model.VerificacaoDTO;
 import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
@@ -32,8 +33,9 @@ public class ClienteController {
     @Autowired private PasswordEncoder passwordEncoder;
 
     @GetMapping
-    public List<Cliente> getAllClientes() {
-        return clienteService.getAllClientes();
+    public List<ClienteDTO> getAllClientes() {
+        return clienteService.getAllClientes()
+                .stream().map(ClienteDTO::fromEntity).toList();
     }
 
     @GetMapping("/{id}")
@@ -41,15 +43,18 @@ public class ClienteController {
         if (!isOwnerOrAdmin(id, auth))
             return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id)
+                .map(ClienteDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/email/{email}")
-    public ResponseEntity<Cliente> getClienteByEmail(@PathVariable String email) {
+    public ResponseEntity<ClienteDTO> getClienteByEmail(@PathVariable String email, Authentication auth) {
         return clienteService.getUserByEmail(email)
+                .filter(c -> isOwnerOrAdmin(c.getId(), auth))
+                .map(ClienteDTO::fromEntity)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.status(403).build());
     }
 
     @PostMapping

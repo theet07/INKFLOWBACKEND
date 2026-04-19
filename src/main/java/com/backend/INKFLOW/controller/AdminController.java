@@ -1,10 +1,9 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Admin;
-import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.AgendamentoDashboard;
-import com.backend.INKFLOW.model.Artista;
-import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.ArtistaDTO;
+import com.backend.INKFLOW.model.ClienteDTO;
 import com.backend.INKFLOW.service.AdminService;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ArtistaService;
@@ -43,12 +42,14 @@ public class AdminController {
     }
 
     @GetMapping("/artistas")
-    public List<Artista> getAllArtistas() {
-        return artistaService.getAll();
+    public List<ArtistaDTO> getAllArtistas() {
+        return artistaService.getAll()
+                .stream().map(ArtistaDTO::fromEntity).toList();
     }
 
     @GetMapping("/clientes")
-    public List<Cliente> getAllClientes() {
-        return clienteService.getAllClientes();
+    public List<ClienteDTO> getAllClientes() {
+        return clienteService.getAllClientes()
+                .stream().map(ClienteDTO::fromEntity).toList();
     }
 }

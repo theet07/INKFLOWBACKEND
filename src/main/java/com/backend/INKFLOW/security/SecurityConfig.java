@@ -91,6 +91,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/agendamentos/{id}/status").hasAnyRole("ARTISTA", "ADMIN", "CLIENTE")
                 // #7 — avaliacao restrita ao CLIENTE: artista e admin nao podem avaliar
                 .requestMatchers(HttpMethod.PUT, "/api/appointments/{id}/avaliar").hasRole("CLIENTE")
+                // Perfil do artista
+                .requestMatchers(HttpMethod.PUT, "/api/artistas/{id}").hasRole("ARTISTA")
+                .requestMatchers(HttpMethod.PUT, "/api/artists/{id}").hasRole("ARTISTA")
+                .requestMatchers(HttpMethod.POST, "/api/artistas/{id}/foto").hasRole("ARTISTA")
+                .requestMatchers(HttpMethod.POST, "/api/artists/{id}/foto").hasRole("ARTISTA")
 
                 // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()

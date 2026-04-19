@@ -296,6 +296,7 @@ public class BackupService {
             String boundary = "----InkFlowBackup" + ts;
 
             byte[] fileBytes = conteudo.getBytes(StandardCharsets.UTF_8);
+            log.info("Tamanho do backup: {} KB", fileBytes.length / 1024);
             String partHeader =
                 "--" + boundary + "\r\n" +
                 "Content-Disposition: form-data; name=\"files[0]\"; filename=\"" + filename + "\"\r\n" +

@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.service.BackupService;
+import com.backend.INKFLOW.service.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class BackupController {
 
     @Autowired
     private BackupService backupService;
+
+    @Autowired
+    private EmailService emailService;
 
     /** GET /api/v1/admin/backup/status — estado do servico de backup. */
     @GetMapping({"/api/v1/admin/backup/status", "/api/admin/backup/status"})
@@ -59,10 +63,7 @@ public class BackupController {
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".sql";
             log.info("Download de backup solicitado: {}", filename);
-            if (backupService.isWebhookConfigurado()) {
-                backupService.enviarWebhook(sql);
-                log.info("Backup enviado para o Discord via download manual.");
-            }
+            emailService.enviarBackupEmail(sql, filename);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.parseMediaType("application/sql"))

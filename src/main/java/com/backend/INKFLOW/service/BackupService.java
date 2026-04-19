@@ -43,6 +43,7 @@ public class BackupService {
     @Autowired private AdminRepository adminRepository;
     @Autowired private PortfolioRepository portfolioRepository;
     @Autowired private DisponibilidadeRepository disponibilidadeRepository;
+    @Autowired private EmailService emailService;
 
     public boolean isWebhookConfigurado() {
         return webhookUrl != null && !webhookUrl.isBlank();
@@ -269,17 +270,14 @@ public class BackupService {
     @Scheduled(cron = "0 0 3 * * *")
     public void backupAutomatico() {
         log.info(">>> GATILHO DE BACKUP ACIONADO <<<");
-        log.info("Iniciando rotina automatica de backup e envio para Webhook");
         try {
             String conteudo = gerarSql();
+            String filename = "inkflow_backup_"
+                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                    + ".sql";
             int linhas = conteudo.split("\n").length;
             log.info("Backup gerado: {} linhas de SQL", linhas);
-
-            if (webhookUrl != null && !webhookUrl.isBlank()) {
-                enviarWebhook(conteudo);
-            } else {
-                log.warn("BACKUP_WEBHOOK_URL nao configurada. Backup gerado apenas em memoria.");
-            }
+            emailService.enviarBackupEmail(conteudo, filename);
         } catch (Exception e) {
             log.error("Falha no backup automatico: {}", e.getMessage(), e);
         }

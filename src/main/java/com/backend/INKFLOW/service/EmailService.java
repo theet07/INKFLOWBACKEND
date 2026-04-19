@@ -4,9 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class EmailService {
@@ -38,6 +44,23 @@ public class EmailService {
         } catch (Exception e) {
             log.error("Falha ao enviar e-mail para {}: {}", destinatario, e.getMessage());
             throw new RuntimeException("Falha ao enviar e-mail de verificacao. Tente novamente.");
+        }
+    }
+
+    public void enviarBackupEmail(String conteudo, String filename) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(remetente);
+            helper.setTo(remetente);
+            helper.setSubject("InkFlow — Backup Automático: " + filename);
+            helper.setText("Backup automático gerado com sucesso.\n\nArquivo: " + filename +
+                    "\nGerado em: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+            helper.addAttachment(filename, new ByteArrayResource(conteudo.getBytes(StandardCharsets.UTF_8)));
+            mailSender.send(message);
+            log.info("Backup enviado por email: {}", filename);
+        } catch (Exception e) {
+            log.error("Falha ao enviar backup por email: {}", e.getMessage(), e);
         }
     }
 }

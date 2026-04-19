@@ -51,7 +51,10 @@ public class AgendamentoController {
                 return ResponseEntity.status(403)
                         .body(Map.of("message", "Acesso negado."));
         }
-        return ResponseEntity.ok(agendamentoService.getAgendamentosByClienteId(clienteId));
+        List<AgendamentoDashboard> resultado = agendamentoService
+                .getAgendamentosByClienteId(clienteId)
+                .stream().map(AgendamentoDashboard::new).toList();
+        return ResponseEntity.ok(resultado);
     }
 
     /**

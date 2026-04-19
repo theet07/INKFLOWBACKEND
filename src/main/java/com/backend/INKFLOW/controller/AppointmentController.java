@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.controller;
 
+import com.backend.INKFLOW.model.AgendamentoDashboard;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ClienteService;
 import org.slf4j.Logger;
@@ -46,7 +47,9 @@ public class AppointmentController {
     @GetMapping("/meus")
     public ResponseEntity<?> getMeusAgendamentos(Authentication auth) {
         return clienteService.getUserByEmail(auth.getName())
-                .map(c -> ResponseEntity.ok(agendamentoService.getAgendamentosByClienteId(c.getId())))
+                .map(c -> ResponseEntity.ok(
+                        agendamentoService.getAgendamentosByClienteId(c.getId())
+                                .stream().map(AgendamentoDashboard::new).toList()))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -62,7 +65,9 @@ public class AppointmentController {
             if (!isOwner)
                 return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         }
-        return ResponseEntity.ok(agendamentoService.getAgendamentosByClienteId(clienteId));
+        return ResponseEntity.ok(
+                agendamentoService.getAgendamentosByClienteId(clienteId)
+                        .stream().map(AgendamentoDashboard::new).toList());
     }
 
     /** PUT /api/appointments/{id}/avaliar — apenas o cliente dono pode avaliar */

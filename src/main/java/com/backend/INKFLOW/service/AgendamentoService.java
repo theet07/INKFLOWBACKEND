@@ -3,7 +3,6 @@ package com.backend.INKFLOW.service;
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
-import com.backend.INKFLOW.repository.ArtistaRepository;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +28,8 @@ public class AgendamentoService {
 
     @Autowired private AgendamentoRepository agendamentoRepository;
     @Autowired private ClienteRepository clienteRepository;
-    @Autowired private ArtistaRepository artistaRepository;
     @Autowired private ClienteService clienteService;
+    @Autowired private ArtistaService artistaService;
     @Autowired private PasswordEncoder passwordEncoder;
 
     @Value("${landing.default.client.password:inkflow@landing2025}")
@@ -89,7 +88,7 @@ public class AgendamentoService {
         if (artistaMap == null || artistaMap.get("id") == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "artista.id e obrigatorio.");
         Integer artistaId = ((Number) artistaMap.get("id")).intValue();
-        var artista = artistaRepository.findById(artistaId)
+        var artista = artistaService.getById(artistaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artista id=" + artistaId + " nao encontrado."));
 
         String dataHoraStr = (String) body.get("dataHora");
@@ -128,7 +127,7 @@ public class AgendamentoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campos obrigatorios: artistId, clienteEmail, date.");
 
         Integer artistId = ((Number) artistIdRaw).intValue();
-        var artista = artistaRepository.findById(artistId)
+        var artista = artistaService.getById(artistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artista nao encontrado."));
 
         String clienteNome = (String) body.get("clienteNome");
@@ -183,7 +182,7 @@ public class AgendamentoService {
         );
         if (agendamento.getArtista() != null && agendamento.getArtista().getId() != null) {
             agendamento.setArtista(
-                artistaRepository.findById(agendamento.getArtista().getId())
+                artistaService.getById(agendamento.getArtista().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Artista id=" + agendamento.getArtista().getId() + " nao encontrado."))
             );

@@ -56,18 +56,20 @@ public class AgendamentoController {
     public ResponseEntity<?> getByCliente(@PathVariable Long clienteId, Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<AgendamentoDashboard> resultado = agendamentoService
+                .getAgendamentosByClienteId(clienteId)
+                .stream().map(AgendamentoDashboard::new).toList();
+
         if (!isAdmin) {
-            boolean isOwner = agendamentoService.getAgendamentosByClienteId(clienteId)
-                    .stream().findFirst()
-                    .map(ag -> ag.getCliente().getEmail().equals(auth.getName()))
-                    .orElse(true);
+            boolean isOwner = resultado.isEmpty() ||
+                    resultado.get(0).getCliente() != null &&
+                    resultado.get(0).getCliente().getEmail().equals(auth.getName());
             if (!isOwner)
                 return ResponseEntity.status(403)
                         .body(Map.of("message", "Acesso negado."));
         }
-        List<AgendamentoDashboard> resultado = agendamentoService
-                .getAgendamentosByClienteId(clienteId)
-                .stream().map(AgendamentoDashboard::new).toList();
+
         return ResponseEntity.ok(resultado);
     }
 

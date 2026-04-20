@@ -1,6 +1,7 @@
 package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Define a disponibilidade semanal de um artista.
@@ -18,6 +19,7 @@ public class DisponibilidadeArtista {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "artista_id", nullable = false)
+    @JsonIgnore
     private Artista artista;
 
     /** 0 = Segunda, 1 = Terca, ..., 5 = Sabado, 6 = Domingo */

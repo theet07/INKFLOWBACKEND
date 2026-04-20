@@ -74,7 +74,7 @@ public class BackupController {
         }
     }
 
-    /** GET /api/v1/admin/backup/testar-webhook — dispara o envio para o Discord imediatamente. */
+    /** GET /api/v1/admin/backup/testar-backup — dispara o envio por e-mail imediatamente. */
     @GetMapping({"/api/v1/admin/backup/testar-backup", "/api/admin/backup/testar-backup"})
     public ResponseEntity<?> testarBackup() {
         try {

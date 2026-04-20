@@ -32,6 +32,34 @@ build/
 ### VS Code ###
 .vscode/
 
-### Environment ###
+### Local ###
 .env
 run.ps1
+*.env
+
+### Segredos e credenciais ###
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.pfx
+*secret*
+*password*
+*credentials*
+application-local.properties
+application-dev.properties
+application-prod.properties
+
+### Backups e dumps ###
+*.sql.bak
+*backup*.sql
+*dump*.sql
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+.DS_Store
+Thumbs.db

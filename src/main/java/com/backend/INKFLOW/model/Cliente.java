@@ -23,6 +23,15 @@ public class Cliente {
     private String telefone;
     private String profileImage;
     
+    @Column(name = "codigo_verificacao", length = 6)
+    private String codigoVerificacao;
+
+    @Column(name = "conta_verificada", nullable = false)
+    private Boolean contaVerificada = false;
+
+    @Column(name = "tentativas_otp", nullable = false)
+    private Integer tentativasOtp = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
     
@@ -56,7 +65,16 @@ public class Cliente {
     
     public String getProfileImage() { return profileImage; }
     public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
-    
+
+    public String getCodigoVerificacao() { return codigoVerificacao; }
+    public void setCodigoVerificacao(String codigoVerificacao) { this.codigoVerificacao = codigoVerificacao; }
+
+    public Boolean getContaVerificada() { return contaVerificada; }
+    public void setContaVerificada(Boolean contaVerificada) { this.contaVerificada = contaVerificada; }
+
+    public Integer getTentativasOtp() { return tentativasOtp; }
+    public void setTentativasOtp(Integer tentativasOtp) { this.tentativasOtp = tentativasOtp; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

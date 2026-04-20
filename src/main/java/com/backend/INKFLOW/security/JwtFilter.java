@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,27 +23,45 @@ public class JwtFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return false;
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(JwtFilter.class);
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        try {
+            String header = request.getHeader("Authorization");
 
-        String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+                if (jwtUtil.validateToken(token)) {
+                    String email = jwtUtil.extractEmail(token);
+                    String role = jwtUtil.extractRole(token);
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            if (jwtUtil.validateToken(token)) {
-                String email = jwtUtil.extractEmail(token);
-                boolean isAdmin = jwtUtil.isAdmin(token);
-                var authority = new SimpleGrantedAuthority(isAdmin ? "ROLE_ADMIN" : "ROLE_USER");
-                var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Token inválido ou expirado\"}");
-                return;
+                    if (role == null || role.isBlank()) {
+                        log.warn("Token valido mas sem role definida para o email: {}", email);
+                        chain.doFilter(request, response);
+                        return;
+                    }
+
+                    var authority = new SimpleGrantedAuthority(role);
+                    var auth = new UsernamePasswordAuthenticationToken(email, null, List.of(authority));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                } else {
+                    log.warn("Token invalido ou expirado para URI: {}", request.getRequestURI());
+                    // Nao interrompe — deixa o Spring Security retornar 401 via AccessDeniedException
+                }
             }
-        }
 
-        chain.doFilter(request, response);
+            chain.doFilter(request, response);
+        } catch (Exception e) {
+            log.error("Erro no JwtFilter [{}] {}: {}", request.getMethod(), request.getRequestURI(), e.getMessage(), e);
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"error\":\"" + e.getClass().getSimpleName() + "\",\"message\":\"" + e.getMessage() + "\"}");
+        }
     }
 }

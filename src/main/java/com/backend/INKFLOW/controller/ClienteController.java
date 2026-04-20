@@ -1,58 +1,269 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.ClienteDTO;
+import com.backend.INKFLOW.model.VerificacaoDTO;
+import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
+import com.backend.INKFLOW.service.EmailService;
+import com.backend.INKFLOW.service.FotoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/clientes")
-@CrossOrigin(origins = {"https://inkflowfrontend.vercel.app", "http://localhost:5173"})
 public class ClienteController {
-    
-    @Autowired
-    private ClienteService clienteService;
-    
+
+    private static final Logger log = LoggerFactory.getLogger(ClienteController.class);
+    private static final String GMAIL_REGEX = "^[^@]+@gmail\\.com$";
+
+    @Autowired private ClienteService clienteService;
+    @Autowired private FotoService fotoService;
+    @Autowired private EmailService emailService;
+    @Autowired private JwtUtil jwtUtil;
+    @Autowired private PasswordEncoder passwordEncoder;
+
     @GetMapping
-    public List<Cliente> getAllClientes() {
-        return clienteService.getAllClientes();
+    public List<ClienteDTO> getAllClientes() {
+        return clienteService.getAllClientes()
+                .stream().map(ClienteDTO::fromEntity).toList();
     }
-    
+
     @GetMapping("/{id}")
-    public ResponseEntity<Cliente> getClienteById(@PathVariable Long id) {
+    public ResponseEntity<?> getClienteById(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id)
+                .map(ClienteDTO::fromEntity)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<ClienteDTO> getClienteByEmail(@PathVariable String email, Authentication auth) {
+        return clienteService.getUserByEmail(email)
+                .filter(c -> isOwnerOrAdmin(c.getId(), auth))
+                .map(ClienteDTO::fromEntity)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(403).build());
+    }
+
     @PostMapping
-    public ResponseEntity<Cliente> createCliente(@RequestBody Cliente cliente) {
-        if (clienteService.existsByUsername(cliente.getUsername())) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (clienteService.existsByEmail(cliente.getEmail())) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<?> createCliente(@RequestBody Cliente cliente) {
+        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+            return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
+        if (clienteService.existsByUsername(cliente.getUsername()))
+            return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+        if (clienteService.existsByEmail(cliente.getEmail()))
+            return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
         return ResponseEntity.ok(clienteService.saveCliente(cliente));
     }
-    
+
+    /**
+     * POST /api/clientes/solicitar-codigo
+     * - Email novo: cria cliente e envia OTP.
+     * - Email existente + conta NAO verificada: atualiza dados e reenvia OTP.
+     * - Email existente + conta verificada: retorna 409.
+     */
+    @PostMapping("/solicitar-codigo")
+    public ResponseEntity<?> solicitarCodigo(@RequestBody Cliente cliente) {
+        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+            return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
+        if (cliente.getPassword() == null || cliente.getPassword().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria."));
+        if (cliente.getUsername() == null || cliente.getUsername().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Username e obrigatorio."));
+
+        Optional<Cliente> existente = clienteService.getUserByEmail(cliente.getEmail());
+        Cliente alvo;
+
+        if (existente.isPresent()) {
+            Cliente ex = existente.get();
+            // Conta ja verificada — bloqueia reuso do e-mail
+            if (Boolean.TRUE.equals(ex.getContaVerificada())) {
+                return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+            }
+            // Conta nao verificada — atualiza dados e reenvia OTP
+            ex.setFullName(cliente.getFullName());
+            ex.setTelefone(cliente.getTelefone());
+            ex.setUsername(cliente.getUsername());
+            if (cliente.getPassword() != null && !cliente.getPassword().startsWith("$2a$")) {
+                ex.setPassword(cliente.getPassword());
+            }
+            alvo = clienteService.saveCliente(ex);
+        } else {
+            // Novo cliente
+            if (clienteService.existsByUsername(cliente.getUsername()))
+                return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+            cliente.setContaVerificada(false);
+            alvo = clienteService.saveCliente(cliente);
+        }
+
+        String codigo = clienteService.gerarEsalvarCodigo(alvo);
+
+        try {
+            emailService.enviarCodigoVerificacao(alvo.getEmail(), codigo);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Conta criada mas falha ao enviar e-mail. Tente reenviar o codigo."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Codigo de verificacao enviado para " + alvo.getEmail(),
+                "email", alvo.getEmail()
+        ));
+    }
+
+    /**
+     * POST /api/clientes/verificar-codigo
+     * Body: { "email": "...", "codigo": "123456" }
+     */
+    @PostMapping("/verificar-codigo")
+    public ResponseEntity<?> verificarCodigo(@RequestBody VerificacaoDTO dados) {
+        String email = dados.getEmail();
+        String codigo = dados.getCodigo();
+
+        if (email == null || codigo == null)
+            return ResponseEntity.badRequest().body(Map.of("message", "email e codigo sao obrigatorios."));
+
+        try {
+            return clienteService.verificarCodigo(email, codigo)
+                    .map(cliente -> {
+                        String token = jwtUtil.generateToken(cliente.getEmail(), "ROLE_CLIENTE");
+                        return ResponseEntity.ok(Map.of(
+                                "success", true,
+                                "message", "Conta verificada com sucesso!",
+                                "token", token,
+                                "user", Map.of(
+                                        "id", cliente.getId(),
+                                        "email", cliente.getEmail(),
+                                        "nome", cliente.getFullName() != null ? cliente.getFullName() : "",
+                                        "role", "ROLE_CLIENTE"
+                                )
+                        ));
+                    })
+                    .orElse(ResponseEntity.status(422)
+                            .body(Map.of("message", "Codigo invalido ou expirado.")));
+        } catch (ClienteService.TooManyOtpAttemptsException e) {
+            return ResponseEntity.status(429).body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Cliente> updateCliente(@PathVariable Long id, @RequestBody Cliente cliente) {
+    public ResponseEntity<?> updateCliente(@PathVariable Long id, @RequestBody Cliente cliente, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         return clienteService.getClienteById(id)
                 .map(existingCliente -> {
                     existingCliente.setFullName(cliente.getFullName());
                     existingCliente.setTelefone(cliente.getTelefone());
-                    existingCliente.setProfileImage(cliente.getProfileImage());
-                    return ResponseEntity.ok(clienteService.updateCliente(existingCliente));
+                    // profileImage NAO e atualizado aqui — use POST /{id}/foto
+                    return ResponseEntity.ok(clienteService.saveCliente(existingCliente));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
-    
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCliente(@PathVariable Long id) {
-        clienteService.deleteCliente(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> deleteCliente(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
+        try {
+            clienteService.deleteCliente(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Erro ao deletar cliente {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/clientes/minha-conta
+     * Exclui a conta do usuario autenticado apos validar a senha.
+     * O ID e extraido exclusivamente do Token JWT — nunca da URL.
+     * Body: { "password": "senhaAtual" }
+     */
+    @DeleteMapping("/minha-conta")
+    public ResponseEntity<?> deleteMinhaConta(@RequestBody Map<String, String> body, Authentication auth) {
+        String senhaDigitada = body.get("password");
+        if (senhaDigitada == null || senhaDigitada.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria para excluir a conta."));
+
+        // Resolve o cliente pelo email do JWT — nunca confia em ID da URL
+        return clienteService.getUserByEmail(auth.getName())
+                .map(cliente -> {
+                    if (!passwordEncoder.matches(senhaDigitada, cliente.getPassword())) {
+                        return ResponseEntity.status(401)
+                                .body(Map.of("message", "Credenciais invalidas."));
+                    }
+                    try {
+                        clienteService.deleteCliente(cliente.getId());
+                        return ResponseEntity.ok(Map.of("message", "Conta excluida com sucesso."));
+                    } catch (Exception e) {
+                        log.error("Erro ao deletar conta do cliente {}: {}", cliente.getId(), e.getMessage(), e);
+                        return ResponseEntity.internalServerError()
+                                .body(Map.of("message", "Erro ao excluir conta."));
+                    }
+                })
+                .orElse(ResponseEntity.status(404).body(Map.of("message", "Usuario nao encontrado.")));
+    }
+
+    @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadFoto(@PathVariable Long id, @RequestParam("file") MultipartFile file, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
+        return clienteService.getClienteById(id).map(cliente -> {
+            try {
+                if (cliente.getProfileImage() != null) {
+                    String oldPublicId = fotoService.extractPublicId(cliente.getProfileImage());
+                    if (oldPublicId != null) fotoService.delete(oldPublicId);
+                }
+                String url = fotoService.upload(file, "cliente_" + id);
+                cliente.setProfileImage(url);
+                clienteService.saveCliente(cliente);
+                return ResponseEntity.ok(Map.of("fotoUrl", url));
+            } catch (Exception e) {
+                log.error("Erro ao fazer upload da foto para cliente {}: {}", id, e.getMessage(), e);
+                return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao fazer upload da foto."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}/foto")
+    public ResponseEntity<?> deleteFoto(@PathVariable Long id, Authentication auth) {
+        if (!isOwnerOrAdmin(id, auth))
+            return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
+        return clienteService.getClienteById(id).map(cliente -> {
+            try {
+                if (cliente.getProfileImage() != null) {
+                    String oldPublicId = fotoService.extractPublicId(cliente.getProfileImage());
+                    if (oldPublicId != null) fotoService.delete(oldPublicId);
+                    cliente.setProfileImage(null);
+                    clienteService.saveCliente(cliente);
+                }
+                return ResponseEntity.ok(Map.of("message", "Foto removida."));
+            } catch (Exception e) {
+                log.error("Erro ao remover foto do cliente {}: {}", id, e.getMessage(), e);
+                return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao remover foto."));
+            }
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private boolean isOwnerOrAdmin(Long clienteId, Authentication auth) {
+        if (auth == null) return false;
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isAdmin) return true;
+        return clienteService.getClienteById(clienteId)
+                .map(c -> c.getEmail().equals(auth.getName()))
+                .orElse(false);
     }
 }

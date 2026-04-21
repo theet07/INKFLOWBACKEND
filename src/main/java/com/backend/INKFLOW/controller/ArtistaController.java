@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -100,6 +101,9 @@ public class ArtistaController {
                         artista.setFotoUrl(url);
                         artistaService.save(artista);
                         return ResponseEntity.ok(Map.of("fotoUrl", url));
+                    } catch (ResponseStatusException e) {
+                        return ResponseEntity.status(e.getStatusCode())
+                                .body(Map.of("message", e.getReason()));
                     } catch (Exception e) {
                         return ResponseEntity.internalServerError()
                                 .body(Map.of("message", "Erro ao fazer upload da foto."));

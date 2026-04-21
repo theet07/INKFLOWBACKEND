@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -230,6 +231,9 @@ public class ClienteController {
                 cliente.setProfileImage(url);
                 clienteService.saveCliente(cliente);
                 return ResponseEntity.ok(Map.of("fotoUrl", url));
+            } catch (ResponseStatusException e) {
+                return ResponseEntity.status(e.getStatusCode())
+                        .body(Map.of("message", e.getReason()));
             } catch (Exception e) {
                 log.error("Erro ao fazer upload da foto para cliente {}: {}", id, e.getMessage(), e);
                 return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao fazer upload da foto."));

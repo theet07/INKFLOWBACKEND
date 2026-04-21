@@ -3,6 +3,8 @@ package com.backend.INKFLOW.controller;
 import com.backend.INKFLOW.model.Admin;
 import com.backend.INKFLOW.model.Artista;
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.model.TokenBlacklist;
+import com.backend.INKFLOW.repository.TokenBlacklistRepository;
 import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.AdminService;
 import com.backend.INKFLOW.service.ArtistaService;
@@ -11,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -19,27 +23,18 @@ import java.util.Optional;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    @Autowired
-    private AdminService adminService;
-
-    @Autowired
-    private ClienteService clienteService;
-
-    @Autowired
-    private ArtistaService artistaService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Autowired private AdminService adminService;
+    @Autowired private ClienteService clienteService;
+    @Autowired private ArtistaService artistaService;
+    @Autowired private JwtUtil jwtUtil;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private TokenBlacklistRepository tokenBlacklistRepository;
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
         String email = loginData.get("email");
         String password = loginData.get("password");
 
-        // Login admin
         Optional<Admin> admin = adminService.getByEmail(email);
         if (admin.isPresent() && passwordEncoder.matches(password, admin.get().getPassword())) {
             String token = jwtUtil.generateToken(email, "ROLE_ADMIN");
@@ -56,7 +51,6 @@ public class AuthController {
             ));
         }
 
-        // Login tatuador
         Optional<Artista> artista = artistaService.getByEmail(email);
         if (artista.isPresent() && passwordEncoder.matches(password, artista.get().getPassword())) {
             String token = jwtUtil.generateToken(email, "ROLE_ARTISTA");
@@ -73,7 +67,6 @@ public class AuthController {
             return ResponseEntity.ok(Map.of("success", true, "token", token, "user", artistaUser));
         }
 
-        // Login cliente
         Optional<Cliente> cliente = clienteService.getUserByEmail(email);
         if (cliente.isPresent() && passwordEncoder.matches(password, cliente.get().getPassword())) {
             if (!Boolean.TRUE.equals(cliente.get().getContaVerificada())) {
@@ -98,5 +91,22 @@ public class AuthController {
             "success", false,
             "message", "Credenciais invalidas."
         ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Token ausente."));
+        }
+        try {
+            String token = authHeader.substring(7);
+            String jti = jwtUtil.extractJti(token);
+            LocalDateTime expiresAt = jwtUtil.extractExpiration(token)
+                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            tokenBlacklistRepository.save(new TokenBlacklist(jti, expiresAt));
+            return ResponseEntity.ok(Map.of("message", "Logout realizado com sucesso."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Token invalido."));
+        }
     }
 }

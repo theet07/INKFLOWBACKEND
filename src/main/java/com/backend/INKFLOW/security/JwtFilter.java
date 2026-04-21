@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.security;
 
+import com.backend.INKFLOW.repository.TokenBlacklistRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,15 +20,15 @@ import java.util.List;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    @Autowired private JwtUtil jwtUtil;
+    @Autowired private TokenBlacklistRepository tokenBlacklistRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(JwtFilter.class);
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return false;
     }
-
-    private static final Logger log = LoggerFactory.getLogger(JwtFilter.class);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -38,6 +39,13 @@ public class JwtFilter extends OncePerRequestFilter {
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.substring(7);
                 if (jwtUtil.validateToken(token)) {
+                    String jti = jwtUtil.extractJti(token);
+                    if (tokenBlacklistRepository.existsByTokenId(jti)) {
+                        log.warn("Token revogado (blacklist) para URI: {}", request.getRequestURI());
+                        chain.doFilter(request, response);
+                        return;
+                    }
+
                     String email = jwtUtil.extractEmail(token);
                     String role = jwtUtil.extractRole(token);
 
@@ -52,7 +60,6 @@ public class JwtFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } else {
                     log.warn("Token invalido ou expirado para URI: {}", request.getRequestURI());
-                    // Nao interrompe — deixa o Spring Security retornar 401 via AccessDeniedException
                 }
             }
 

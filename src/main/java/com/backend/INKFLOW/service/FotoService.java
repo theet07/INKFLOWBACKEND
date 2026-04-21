@@ -2,6 +2,7 @@ package com.backend.INKFLOW.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,6 +14,9 @@ import java.util.Map;
 public class FotoService {
 
     private final Cloudinary cloudinary;
+
+    @Autowired
+    private FileValidationService fileValidationService;
 
     public FotoService(
             @Value("${cloudinary.cloud-name}") String cloudName,
@@ -26,6 +30,7 @@ public class FotoService {
     }
 
     public String upload(MultipartFile file, String publicId) throws IOException {
+        fileValidationService.validar(file);
         Map result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
                 "public_id", publicId,
                 "folder", "inkflow/clientes",

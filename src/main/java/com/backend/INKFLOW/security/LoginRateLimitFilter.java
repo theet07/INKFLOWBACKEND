@@ -43,7 +43,7 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip = request.getRemoteAddr();
+        String ip = getClientIp(request);
         Bucket bucket = getBucket(ip);
 
         if (bucket.tryConsume(1)) {
@@ -55,5 +55,13 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
                 "{\"success\": false, \"message\": \"Muitas tentativas. Aguarde 15 minutos.\"}"
             );
         }
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

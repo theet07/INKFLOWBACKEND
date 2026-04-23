@@ -186,6 +186,7 @@ public class ChatController {
             return ResponseEntity.ok(Map.of("response", text));
 
         } catch (Exception e) {
+            System.err.println("[ChatController] Erro ao chamar Gemini: " + e.getClass().getName() + " - " + e.getMessage());
             return ResponseEntity.status(500).body(Map.of("error", "Erro ao processar sua mensagem. Tente novamente."));
         }
     }

@@ -19,7 +19,7 @@ import java.util.*;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    @Value("${GROQ_API_KEY}")
+    @Value("${groq.api.key}")
     private String groqApiKey;
 
     @Autowired

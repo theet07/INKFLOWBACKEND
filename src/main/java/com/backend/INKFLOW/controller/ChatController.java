@@ -36,6 +36,7 @@ public class ChatController {
     private static final String SYSTEM_PROMPT =
         "Você é o assistente virtual do InkFlow, plataforma que conecta clientes a tatuadores independentes do Brasil. " +
         "Responda sempre em português, de forma simpática, direta e com a identidade visual do estúdio: sofisticado, artístico e acolhedor. " +
+        "IMPORTANTE: Use APENAS as informações fornecidas abaixo. Não invente nem complemente com informações externas. " +
 
         "\n\n== SOBRE O INKFLOW ==" +
         "\n- Plataforma de agendamento de tatuagens com artistas independentes em todo o Brasil." +

@@ -34,9 +34,10 @@ public class ChatController {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private static final String SYSTEM_PROMPT =
-        "Você é o assistente virtual do InkFlow, plataforma que conecta clientes a tatuadores independentes do Brasil. " +
-        "Responda sempre em português, de forma simpática, direta e com a identidade visual do estúdio: sofisticado, artístico e acolhedor. " +
-        "IMPORTANTE: Use APENAS as informações fornecidas abaixo. Não invente nem complemente com informações externas. " +
+        "Você é o assistente virtual do InkFlow, plataforma brasileira de agendamento de tatuagens. " +
+        "Responda SEMPRE em português. Seja direto e breve — máximo 3 frases por resposta. " +
+        "Use APENAS as informações abaixo. Se não souber, diga que não tem essa informação e indique /contato. " +
+        "Não invente, não especule, não use markdown (sem **, sem ##, sem ---). " +
 
         "\n\n== SOBRE O INKFLOW ==" +
         "\n- Plataforma de agendamento de tatuagens com artistas independentes em todo o Brasil." +
@@ -167,8 +168,8 @@ public class ChatController {
             Map<String, Object> body = Map.of(
                 "model", "llama-3.1-8b-instant",
                 "messages", groqMessages,
-                "max_tokens", 512,
-                "temperature", 0.7
+                "max_tokens", 200,
+                "temperature", 0.3
             );
 
             String url = "https://api.groq.com/openai/v1/chat/completions";

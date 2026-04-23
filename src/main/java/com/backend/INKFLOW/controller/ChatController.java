@@ -19,8 +19,8 @@ import java.util.*;
 @RequestMapping("/api/chat")
 public class ChatController {
 
-    @Value("${GEMINI_API_KEY}")
-    private String geminiApiKey;
+    @Value("${GROQ_API_KEY}")
+    private String groqApiKey;
 
     @Autowired
     private ChatRateLimitService rateLimitService;
@@ -155,33 +155,34 @@ public class ChatController {
 
         // 6. Chamar Gemini
         try {
-            List<Map<String, Object>> contents = new ArrayList<>();
-
-            contents.add(Map.of("role", "user",
-                "parts", List.of(Map.of("text", SYSTEM_PROMPT))));
-            contents.add(Map.of("role", "model",
-                "parts", List.of(Map.of("text", "Entendido! Estou pronto para ajudar os clientes do InkFlow."))));
-
+            // Montar payload no formato OpenAI-compatible (Groq usa esse formato)
+            List<Map<String, String>> groqMessages = new ArrayList<>();
+            groqMessages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
             for (ChatRequest.Message msg : historico) {
-                String role = "user".equals(msg.getRole()) ? "user" : "model";
-                contents.add(Map.of("role", role,
-                    "parts", List.of(Map.of("text", msg.getContent()))));
+                String role = "user".equals(msg.getRole()) ? "user" : "assistant";
+                groqMessages.add(Map.of("role", role, "content", msg.getContent()));
             }
 
-            Map<String, Object> body = Map.of("contents", contents);
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=" + geminiApiKey;
+            Map<String, Object> body = Map.of(
+                "model", "llama-3.1-8b-instant",
+                "messages", groqMessages,
+                "max_tokens", 512,
+                "temperature", 0.7
+            );
+
+            String url = "https://api.groq.com/openai/v1/chat/completions";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(groqApiKey);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-            ResponseEntity<Map> geminiResponse = restTemplate.postForEntity(url, entity, Map.class);
+            ResponseEntity<Map> groqResponse = restTemplate.postForEntity(url, entity, Map.class);
 
-            Map<String, Object> responseBody = geminiResponse.getBody();
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseBody.get("candidates");
-            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-            String text = (String) parts.get(0).get("text");
+            Map<String, Object> responseBody = groqResponse.getBody();
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+            String text = (String) message.get("content");
 
             return ResponseEntity.ok(Map.of("response", text));
 

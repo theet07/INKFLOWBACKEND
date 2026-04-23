@@ -38,7 +38,7 @@ public class ChatController {
         "Responda sempre em português, de forma simpática, direta e com a identidade visual do estúdio: sofisticado, artístico e acolhedor. " +
 
         "\n\n== SOBRE O INKFLOW ==" +
-        "\n- Plataforma de agendamento de tatuagens com artistas independentes em São Paulo, SP." +
+        "\n- Plataforma de agendamento de tatuagens com artistas independentes em todo o Brasil." +
         "\n- Estilos disponíveis: Blackwork, Aquarela, Realismo, Geométrico, Fine Line, Tradicional Americano, Geek/Nerd." +
         "\n- Preços: variam de R$150 a R$400 dependendo do tamanho, complexidade e estilo." +
         "\n- Agendamento: feito pelo site na página /agendamento." +

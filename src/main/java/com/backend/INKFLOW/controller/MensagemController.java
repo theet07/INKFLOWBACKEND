@@ -119,7 +119,17 @@ public class MensagemController {
         Long userIdDoToken = resolveUserId(auth);
         if (userIdDoToken == null) return ResponseEntity.status(403).build();
         List<Long> remetentes = mensagemRepository.findRemetentesDoArtista(userIdDoToken);
-        return ResponseEntity.ok(remetentes);
+        // Enriquecer com dados do cliente
+        List<Map<String, Object>> resultado = remetentes.stream().map(cid -> {
+            Map<String, Object> info = new java.util.LinkedHashMap<>();
+            info.put("clienteId", cid);
+            clienteService.getClienteById(cid).ifPresent(c -> {
+                info.put("nome", c.getFullName());
+                info.put("fotoUrl", c.getProfileImage());
+            });
+            return info;
+        }).toList();
+        return ResponseEntity.ok(resultado);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

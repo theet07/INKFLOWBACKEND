@@ -56,6 +56,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ping", "/api/health", "/api/status", "/").permitAll()
                 .requestMatchers("/api/chat").authenticated()
+                .requestMatchers("/api/mensagens/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/solicitar-codigo").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/verificar-codigo").permitAll()

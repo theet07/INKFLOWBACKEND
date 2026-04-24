@@ -31,6 +31,15 @@ public class SuspectLogTableInit implements CommandLineRunner {
                 "mensagem VARCHAR(200), " +
                 "timestamp TIMESTAMP)"
             );
+            stmt.execute(
+                "CREATE TABLE IF NOT EXISTS mensagens (" +
+                "id BIGSERIAL PRIMARY KEY, " +
+                "remetente_id BIGINT, " +
+                "destinatario_id BIGINT, " +
+                "conteudo VARCHAR(500), " +
+                "lida BOOLEAN DEFAULT FALSE, " +
+                "created_at TIMESTAMP)"
+            );
             log.info("[Init] Tabela suspect_logs verificada/criada.");
         } catch (Exception e) {
             log.warn("[Init] Nao foi possivel criar tabela suspect_logs: {}", e.getMessage());

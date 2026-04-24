@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -27,6 +28,10 @@ public class AgendamentoDashboard {
     private Integer avaliacao;
     private String observacoes;
     private boolean avaliado;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private LocalDateTime createdAt;
+
     private ClienteResumo cliente;
     private ArtistaResumo artista;
 
@@ -46,6 +51,7 @@ public class AgendamentoDashboard {
         this.avaliacao = ag.getAvaliacao();
         this.observacoes = ag.getObservacoes();
         this.avaliado = ag.isAvaliado();
+        this.createdAt = ag.getCreatedAt();
         this.tags = ag.getTags() != null && !ag.getTags().isBlank()
                 ? Arrays.stream(ag.getTags().split(","))
                         .map(String::trim)
@@ -73,6 +79,7 @@ public class AgendamentoDashboard {
     public Integer getAvaliacao() { return avaliacao; }
     public String getObservacoes() { return observacoes; }
     public boolean isAvaliado() { return avaliado; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
     public ClienteResumo getCliente() { return cliente; }
     public ArtistaResumo getArtista() { return artista; }
 

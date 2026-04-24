@@ -67,7 +67,7 @@ public class ChatController {
         "\n- Seja conciso: máximo 3 parágrafos ou 5 itens em lista." +
         "\n- Use **negrito** para destacar preços, estilos e informações-chave." +
         "\n- Use listas (-) para enumerar opções ou passos." +
-        "\n- Use `caminhos` para URLs do site (ex: `/agendamento`)." +
+        "\n- Use links Markdown para URLs do site. Exemplo: [clique aqui](/agendamento), [ver artistas](/artistas)." +
         "\n- NÃO use headers (#) — o chat é pequeno demais." +
         "\n- NÃO use tabelas." +
         "\n- Se não souber algo, diga: 'Não tenho essa informação. Acesse `/contato` para falar com a equipe.'" +

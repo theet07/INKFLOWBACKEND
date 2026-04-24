@@ -169,10 +169,10 @@ public class ChatController {
             }
 
             Map<String, Object> body = Map.of(
-                "model", "llama-3.1-8b-instant",
+                "model", "llama-3.3-70b-versatile",
                 "messages", groqMessages,
-                "max_tokens", 200,
-                "temperature", 0.3
+                "max_tokens", 500,
+                "temperature", 0.4
             );
 
             String url = "https://api.groq.com/openai/v1/chat/completions";

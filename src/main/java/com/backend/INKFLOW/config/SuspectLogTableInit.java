@@ -12,7 +12,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 
 @Component
-@Order(0)
+@Order(10)
 public class SuspectLogTableInit implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SuspectLogTableInit.class);

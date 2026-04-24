@@ -161,20 +161,12 @@ public class AgendamentoController {
                 }
             }
 
-            // Cancelamento: duas regras de proteção
+            // Cancelamento: apenas dentro de 24h após a criação do agendamento
             if ("CANCELADO".equals(novoStatus)) {
-                // Regra 1: mais de 24h desde a criação → janela de arrependimento expirou
                 long horasDesdeCriacao = ChronoUnit.HOURS.between(ag.getCreatedAt(), LocalDateTime.now());
                 if (horasDesdeCriacao > 24) {
                     return ResponseEntity.status(422)
                             .body(Map.of("message", "Cancelamento não permitido. O prazo de 24h após o agendamento já expirou."));
-                }
-
-                // Regra 2: menos de 24h para a sessão → proteção do artista
-                long horasParaSessao = ChronoUnit.HOURS.between(LocalDateTime.now(), ag.getDataHora());
-                if (horasParaSessao < 24) {
-                    return ResponseEntity.status(422)
-                            .body(Map.of("message", "Cancelamento não permitido. Faltam menos de 24 horas para a sessão. Entre em contato com o estúdio."));
                 }
             }
         }

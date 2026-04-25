@@ -58,6 +58,12 @@ public class Agendamento {
     @Column(name = "avaliado", nullable = false, columnDefinition = "boolean default false")
     private boolean avaliado = false;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @PreUpdate
+    public void onUpdate() { this.updatedAt = LocalDateTime.now(); }
+
     public Agendamento() {}
 
     public Long getId() { return id; }
@@ -116,4 +122,7 @@ public class Agendamento {
 
     public boolean isAvaliado() { return avaliado; }
     public void setAvaliado(boolean avaliado) { this.avaliado = avaliado; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

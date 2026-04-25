@@ -32,6 +32,9 @@ public class AgendamentoDashboard {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     private LocalDateTime createdAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private LocalDateTime updatedAt;
+
     private ClienteResumo cliente;
     private ArtistaResumo artista;
 
@@ -52,6 +55,7 @@ public class AgendamentoDashboard {
         this.observacoes = ag.getObservacoes();
         this.avaliado = ag.isAvaliado();
         this.createdAt = ag.getCreatedAt();
+        this.updatedAt = ag.getUpdatedAt();
         this.tags = ag.getTags() != null && !ag.getTags().isBlank()
                 ? Arrays.stream(ag.getTags().split(","))
                         .map(String::trim)
@@ -80,6 +84,7 @@ public class AgendamentoDashboard {
     public String getObservacoes() { return observacoes; }
     public boolean isAvaliado() { return avaliado; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
     public ClienteResumo getCliente() { return cliente; }
     public ArtistaResumo getArtista() { return artista; }
 

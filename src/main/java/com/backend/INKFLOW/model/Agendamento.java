@@ -25,6 +25,8 @@ public class Agendamento {
     private LocalDateTime dataHora;
 
     private String servico;
+
+    @Column(length = 1000)
     private String descricao;
     private String status = "PENDENTE";
     private Double preco;

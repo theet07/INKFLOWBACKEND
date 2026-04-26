@@ -164,6 +164,12 @@ git push origin teste
 ### Chatbot
 - `POST /api/chat` → `{ message }` (system prompt: InkFlow opera em "todo o Brasil")
 
+### Contato
+- `POST /api/contato` → `{ nome, email, telefone, mensagem }` (público, sem autenticação)
+  - Envia e-mail para `inkflowstudios07@gmail.com`
+  - Validação: nome, email e mensagem obrigatórios
+  - Limite: mensagem até 2000 caracteres
+
 ---
 
 ## Sistema de Notificações
@@ -326,7 +332,15 @@ cloudinary.cloud-name=...
 cloudinary.api-key=...
 cloudinary.api-secret=...
 groq.api.key=...
+GMAIL_USER=inkflowstudios07@gmail.com
+GMAIL_APP_PASSWORD=<senha de app do Gmail>
 ```
+
+**Instruções para gerar senha de app do Gmail:**
+1. Acessar `myaccount.google.com`
+2. Segurança → Verificação em duas etapas (ativar se não estiver)
+3. Segurança → Senhas de app → Gerar nova senha para "Mail"
+4. Copiar a senha gerada (16 caracteres) e colocar no Render como `GMAIL_APP_PASSWORD`
 
 ### Frontend (.env)
 ```

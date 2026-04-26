@@ -114,6 +114,18 @@ public class MensagemController {
         return ResponseEntity.ok(Map.of("total", total));
     }
 
+    @PatchMapping("/marcar-todas-lidas")
+    public ResponseEntity<?> marcarTodasLidas(Authentication auth) {
+        Long userIdDoToken = resolveUserId(auth);
+        if (userIdDoToken == null) return ResponseEntity.status(403).build();
+        
+        List<Mensagem> naoLidas = mensagemRepository.findByDestinatarioIdAndLidaFalse(userIdDoToken);
+        naoLidas.forEach(msg -> msg.setLida(true));
+        mensagemRepository.saveAll(naoLidas);
+        
+        return ResponseEntity.ok(Map.of("message", "Mensagens marcadas como lidas", "total", naoLidas.size()));
+    }
+
     @GetMapping("/conversas")
     public ResponseEntity<?> conversas(Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);

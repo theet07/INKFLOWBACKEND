@@ -3,6 +3,7 @@ package com.backend.INKFLOW.dto;
 public class LeadArtistaRequest {
     private String nomeCompleto;
     private String nomeEstudio;
+    private String email;
     private String whatsapp;
     private String especialidade;
 
@@ -21,6 +22,14 @@ public class LeadArtistaRequest {
 
     public void setNomeEstudio(String nomeEstudio) {
         this.nomeEstudio = nomeEstudio;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getWhatsapp() {

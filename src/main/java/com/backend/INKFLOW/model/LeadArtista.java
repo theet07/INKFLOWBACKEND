@@ -18,6 +18,9 @@ public class LeadArtista {
     private String nomeEstudio;
 
     @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
     private String whatsapp;
 
     @Column(nullable = false)
@@ -56,6 +59,14 @@ public class LeadArtista {
 
     public void setNomeEstudio(String nomeEstudio) {
         this.nomeEstudio = nomeEstudio;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getWhatsapp() {

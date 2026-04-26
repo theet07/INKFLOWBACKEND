@@ -114,6 +114,40 @@ public class MensagemController {
         return ResponseEntity.ok(Map.of("total", total));
     }
 
+    @GetMapping("/nao-lidas")
+    public ResponseEntity<?> getNaoLidas(Authentication auth) {
+        Long userIdDoToken = resolveUserId(auth);
+        if (userIdDoToken == null) return ResponseEntity.status(403).build();
+        
+        List<Mensagem> naoLidas = mensagemRepository.findByDestinatarioIdAndLidaFalse(userIdDoToken);
+        
+        // Enriquecer com dados do remetente
+        List<Map<String, Object>> resultado = naoLidas.stream().map(msg -> {
+            Map<String, Object> info = new java.util.LinkedHashMap<>();
+            info.put("id", msg.getId());
+            info.put("conteudo", msg.getConteudo());
+            info.put("createdAt", msg.getCreatedAt());
+            info.put("remetenteId", msg.getRemetenteId());
+            
+            // Buscar nome do remetente (pode ser artista ou cliente)
+            String remetenteNome = "Usuário";
+            var artista = artistaService.getById(msg.getRemetenteId().intValue());
+            if (artista.isPresent()) {
+                remetenteNome = artista.get().getNome();
+            } else {
+                var cliente = clienteService.getClienteById(msg.getRemetenteId());
+                if (cliente.isPresent()) {
+                    remetenteNome = cliente.get().getFullName();
+                }
+            }
+            info.put("remetenteNome", remetenteNome);
+            
+            return info;
+        }).toList();
+        
+        return ResponseEntity.ok(resultado);
+    }
+
     @PatchMapping("/marcar-todas-lidas")
     public ResponseEntity<?> marcarTodasLidas(Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);

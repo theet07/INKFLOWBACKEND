@@ -160,6 +160,23 @@ public class MensagemController {
         return ResponseEntity.ok(Map.of("message", "Mensagens marcadas como lidas", "total", naoLidas.size()));
     }
 
+    @PatchMapping("/marcar-lidas-por-remetente/{remetenteId}")
+    public ResponseEntity<?> marcarLidasPorRemetente(@PathVariable Long remetenteId, Authentication auth) {
+        Long userIdDoToken = resolveUserId(auth);
+        if (userIdDoToken == null) return ResponseEntity.status(403).build();
+        
+        // Buscar mensagens não lidas deste remetente específico para o usuário logado
+        List<Mensagem> naoLidas = mensagemRepository.findByDestinatarioIdAndLidaFalse(userIdDoToken)
+            .stream()
+            .filter(msg -> msg.getRemetenteId().equals(remetenteId))
+            .toList();
+        
+        naoLidas.forEach(msg -> msg.setLida(true));
+        mensagemRepository.saveAll(naoLidas);
+        
+        return ResponseEntity.ok(Map.of("message", "Mensagens marcadas como lidas", "total", naoLidas.size()));
+    }
+
     @GetMapping("/conversas")
     public ResponseEntity<?> conversas(Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);

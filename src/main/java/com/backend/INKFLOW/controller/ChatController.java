@@ -46,7 +46,7 @@ public class ChatController {
         "\nDepois responda de forma direta, sem enrolação." +
 
         "\n\n== SOBRE O INKFLOW ==" +
-        "\n- Plataforma que conecta clientes a tatuadores independentes em São Paulo, SP." +
+        "\n- Plataforma que conecta clientes a tatuadores independentes em todo o Brasil." +
         "\n- **Estilos disponíveis:** Blackwork, Aquarela, Realismo, Geométrico, Fine Line, Tradicional Americano, Geek/Nerd." +
         "\n- **Preços:** R$150 a R$400 dependendo do tamanho, complexidade e estilo." +
         "\n- **Agendamento:** `/agendamento`" +

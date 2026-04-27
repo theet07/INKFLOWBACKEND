@@ -473,9 +473,9 @@ private String password;
 - **10 Low**: UX issues, logs excessivos, mensagens de erro genéricas, etc.
 
 ### Top 3 Prioridades para Apresentação (1 hora)
-1. **#1 URLs Hardcoded** (15 min): Criar variáveis de ambiente para todas as URLs
-2. **#6 OTP sem Expiração** (30 min): Adicionar campo `expiresAt` em `CodigoVerificacao`
-3. **#11 React Hooks Condicionais** (10 min): Mover hooks para topo dos componentes
+1. **#1 URLs Hardcoded** (15 min) ✅ RESOLVIDO - Centralizado no inkflowApi.js
+2. **#6 OTP sem Expiração** (30 min) ✅ RESOLVIDO - Validação de 15 minutos implementada
+3. **#11 React Hooks Condicionais** (10 min) ✅ NÃO NECESSÁRIO - Código já está correto, hooks antes de returns
 
 ### Prioridades Secundárias (2 horas adicionais)
 4. **#2 Cloudinary Proxy** (45 min): Criar endpoint `/api/upload` no backend

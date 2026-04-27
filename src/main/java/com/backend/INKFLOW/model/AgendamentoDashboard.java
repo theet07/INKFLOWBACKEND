@@ -22,6 +22,9 @@ public class AgendamentoDashboard {
     @JsonProperty("imagemReferenciaUrl")
     private String imagemReferenciaUrl;
 
+    @JsonProperty("imagemResultadoUrl")
+    private String imagemResultadoUrl;
+
     private Double preco;
     private Double valorPago;
     private Double valorPendente;
@@ -48,6 +51,7 @@ public class AgendamentoDashboard {
         this.largura = ag.getLargura();
         this.altura = ag.getAltura();
         this.imagemReferenciaUrl = ag.getImagemReferenciaUrl();
+        this.imagemResultadoUrl = ag.getImagemResultadoUrl();
         this.preco = ag.getPreco();
         this.valorPago = ag.getValorPago();
         this.valorPendente = ag.getValorPendente();
@@ -77,6 +81,7 @@ public class AgendamentoDashboard {
     public Double getAltura() { return altura; }
     public List<String> getTags() { return tags; }
     public String getImagemReferenciaUrl() { return imagemReferenciaUrl; }
+    public String getImagemResultadoUrl() { return imagemResultadoUrl; }
     public Double getPreco() { return preco; }
     public Double getValorPago() { return valorPago; }
     public Double getValorPendente() { return valorPendente; }

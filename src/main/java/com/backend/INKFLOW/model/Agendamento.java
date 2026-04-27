@@ -57,6 +57,9 @@ public class Agendamento {
     @Column(name = "imagem_referencia_url", length = 1000, nullable = true)
     private String imagemReferenciaUrl;
 
+    @Column(name = "imagem_resultado_url", length = 1000, nullable = true)
+    private String imagemResultadoUrl;
+
     @Column(name = "avaliado", nullable = false, columnDefinition = "boolean default false")
     private boolean avaliado = false;
 
@@ -121,6 +124,9 @@ public class Agendamento {
 
     public String getImagemReferenciaUrl() { return imagemReferenciaUrl; }
     public void setImagemReferenciaUrl(String imagemReferenciaUrl) { this.imagemReferenciaUrl = imagemReferenciaUrl; }
+
+    public String getImagemResultadoUrl() { return imagemResultadoUrl; }
+    public void setImagemResultadoUrl(String imagemResultadoUrl) { this.imagemResultadoUrl = imagemResultadoUrl; }
 
     public boolean isAvaliado() { return avaliado; }
     public void setAvaliado(boolean avaliado) { this.avaliado = avaliado; }

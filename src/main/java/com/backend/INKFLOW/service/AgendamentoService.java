@@ -101,6 +101,11 @@ public class AgendamentoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de dataHora invalido. Use yyyy-MM-ddTHH:mm:ss");
         }
 
+        // Validação: não permite agendamento no passado
+        if (dataHora.isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
+        }
+
         Agendamento ag = new Agendamento();
         ag.setCliente(cliente);
         ag.setArtista(artista);
@@ -147,6 +152,11 @@ public class AgendamentoService {
             dataHora = LocalDateTime.parse(date + "T" + (time != null ? time : "12:00") + ":00");
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de data/hora invalido. Use date: YYYY-MM-DD e time: HH:mm.");
+        }
+
+        // Validação: não permite agendamento no passado
+        if (dataHora.isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
         }
 
         Agendamento ag = new Agendamento();

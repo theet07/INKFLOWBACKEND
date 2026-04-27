@@ -3,6 +3,10 @@ package com.backend.INKFLOW.controller;
 import com.backend.INKFLOW.dto.LeadArtistaRequest;
 import com.backend.INKFLOW.model.LeadArtista;
 import com.backend.INKFLOW.repository.LeadArtistaRepository;
+import com.backend.INKFLOW.service.ChatRateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
@@ -15,14 +19,26 @@ import java.util.Map;
 @RequestMapping("/api/leads")
 public class LeadController {
 
+    private static final Logger log = LoggerFactory.getLogger(LeadController.class);
+
     @Autowired
     private LeadArtistaRepository leadRepository;
 
     @Autowired
     private JavaMailSender mailSender;
+    
+    @Autowired
+    private ChatRateLimitService rateLimitService;
 
     @PostMapping("/artista")
-    public ResponseEntity<?> cadastrarLead(@RequestBody LeadArtistaRequest request) {
+    public ResponseEntity<?> cadastrarLead(@RequestBody LeadArtistaRequest request,
+                                           HttpServletRequest httpRequest) {
+        // Rate limiting: 3 submissões por IP a cada 10 minutos
+        String ip = getClientIp(httpRequest);
+        if (!rateLimitService.isAllowed(ip)) {
+            return ResponseEntity.status(429)
+                    .body(Map.of("error", "Muitas solicitações. Aguarde alguns minutos."));
+        }
         // Validações
         if (request.getNomeCompleto() == null || request.getNomeCompleto().trim().length() < 3) {
             return ResponseEntity.badRequest().body(Map.of("error", "Nome completo deve ter no mínimo 3 caracteres."));
@@ -83,7 +99,7 @@ public class LeadController {
                 mailSender.send(mailArtista);
             } catch (Exception e) {
                 // Log mas não falha a requisição
-                System.err.println("Erro ao enviar email para artista: " + e.getMessage());
+                log.error("Erro ao enviar email para artista: {}", e.getMessage());
             }
 
             // Enviar notificação para equipe InkFlow
@@ -104,7 +120,7 @@ public class LeadController {
                 mailSender.send(mailEquipe);
             } catch (Exception e) {
                 // Log mas não falha a requisição
-                System.err.println("Erro ao enviar email para equipe: " + e.getMessage());
+                log.error("Erro ao enviar email para equipe: {}", e.getMessage());
             }
 
             return ResponseEntity.ok(Map.of(
@@ -113,8 +129,14 @@ public class LeadController {
             ));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Erro ao processar cadastro de lead: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "Erro ao processar cadastro."));
         }
+    }
+    
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        return request.getRemoteAddr();
     }
 }

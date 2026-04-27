@@ -2,6 +2,8 @@ package com.backend.INKFLOW.security;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,22 +16,53 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Order(1)
 public class LoginRateLimitFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Map<String, BucketEntry> buckets = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+    private static class BucketEntry {
+        final Bucket bucket;
+        long lastAccess;
+
+        BucketEntry(Bucket bucket) {
+            this.bucket = bucket;
+            this.lastAccess = System.currentTimeMillis();
+        }
+    }
+
+    @PostConstruct
+    public void init() {
+        // Limpa buckets inativos a cada 30 minutos
+        scheduler.scheduleAtFixedRate(() -> {
+            long now = System.currentTimeMillis();
+            long ttl = TimeUnit.HOURS.toMillis(1); // Remove após 1h de inatividade
+            buckets.entrySet().removeIf(entry -> (now - entry.getValue().lastAccess) > ttl);
+        }, 30, 30, TimeUnit.MINUTES);
+    }
+
+    @PreDestroy
+    public void destroy() {
+        scheduler.shutdown();
+    }
 
     private Bucket getBucket(String ip) {
-        return buckets.computeIfAbsent(ip, k ->
-            Bucket.builder()
+        BucketEntry entry = buckets.computeIfAbsent(ip, k -> 
+            new BucketEntry(Bucket.builder()
                 .addLimit(Bandwidth.builder()
                     .capacity(5)
                     .refillIntervally(5, Duration.ofMinutes(15))
                     .build())
-                .build()
+                .build())
         );
+        entry.lastAccess = System.currentTimeMillis();
+        return entry.bucket;
     }
 
     @Override

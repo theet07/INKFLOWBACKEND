@@ -20,7 +20,7 @@ public class UploadController {
     /**
      * Endpoint proxy para upload de imagens no Cloudinary.
      * Esconde upload_preset e credenciais do frontend.
-     * Requer autenticação (ARTISTA ou ADMIN).
+     * Permite upload de CLIENTES (para referências de agendamento), ARTISTAS e ADMINS.
      */
     @PostMapping
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file,
@@ -31,14 +31,15 @@ public class UploadController {
                     .body(Map.of("message", "Autenticacao necessaria para upload."));
         }
 
-        // Valida se é ARTISTA ou ADMIN
-        boolean isArtistOrAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ARTISTA") || 
+        // Valida se é CLIENTE, ARTISTA ou ADMIN
+        boolean isAuthorized = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENTE") ||
+                              a.getAuthority().equals("ROLE_ARTISTA") || 
                               a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isArtistOrAdmin) {
+        if (!isAuthorized) {
             return ResponseEntity.status(403)
-                    .body(Map.of("message", "Apenas artistas e administradores podem fazer upload."));
+                    .body(Map.of("message", "Acesso negado."));
         }
 
         try {

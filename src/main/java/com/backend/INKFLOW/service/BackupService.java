@@ -229,7 +229,12 @@ public class BackupService {
 
     private String q(String val) {
         if (val == null) return "NULL";
-        return "'" + val.replace("'", "''") + "'";
+        return "'" + val
+            .replace("'", "''")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\0", "")
+            + "'";
     }
 
     @Scheduled(cron = "0 0 3 * * *")

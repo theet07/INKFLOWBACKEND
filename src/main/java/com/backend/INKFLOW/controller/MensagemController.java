@@ -83,6 +83,13 @@ public class MensagemController {
     public ResponseEntity<?> conversa(@PathVariable Long outroUsuarioId, Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);
         if (userIdDoToken == null) return ResponseEntity.status(403).build();
+        
+        // Validar que existe relação de agendamento entre os usuários
+        boolean temRelacao = verificarRelacao(userIdDoToken, outroUsuarioId);
+        if (!temRelacao) {
+            return ResponseEntity.status(403).body(Map.of("message", "Você só pode acessar conversas com usuários relacionados."));
+        }
+        
         return ResponseEntity.ok(mensagemRepository.findConversa(userIdDoToken, outroUsuarioId));
     }
 

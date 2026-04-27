@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.controller;
 
+import com.backend.INKFLOW.dto.AgendamentoUpdateRequest;
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.AgendamentoDashboard;
 import com.backend.INKFLOW.service.AgendamentoService;
@@ -111,9 +112,30 @@ public class AgendamentoController {
     }
 
     @GetMapping("/status/{status}")
-    public List<AgendamentoDashboard> getAgendamentosByStatus(@PathVariable String status) {
-        return agendamentoService.getAgendamentosByStatus(status)
-                .stream().map(AgendamentoDashboard::new).toList();
+    public ResponseEntity<?> getAgendamentosByStatus(@PathVariable String status, Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        
+        if (isAdmin) {
+            // Admin vê todos os agendamentos com esse status
+            List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByStatus(status)
+                    .stream().map(AgendamentoDashboard::new).toList();
+            return ResponseEntity.ok(resultado);
+        }
+        
+        // Artista vê apenas seus próprios agendamentos
+        return artistaService.getByEmail(auth.getName())
+                .map(artista -> {
+                    List<AgendamentoDashboard> resultado = agendamentoService
+                            .getAgendamentosByArtistaEmail(auth.getName())
+                            .stream()
+                            .filter(ag -> status.equals(ag.getStatus()))
+                            .map(AgendamentoDashboard::new)
+                            .toList();
+                    return ResponseEntity.ok(resultado);
+                })
+                .orElse(ResponseEntity.status(403)
+                        .body(Map.of("message", "Acesso negado.")));
     }
 
     @PatchMapping("/{id}/status")
@@ -178,7 +200,7 @@ public class AgendamentoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateAgendamento(@PathVariable Long id,
-                                                @RequestBody Agendamento agendamento,
+                                                @RequestBody AgendamentoUpdateRequest request,
                                                 Authentication auth) {
         return agendamentoService.getAgendamentoById(id)
                 .map(existing -> {
@@ -189,9 +211,22 @@ public class AgendamentoController {
                     if (!isAdmin && !isOwner)
                         return ResponseEntity.status(403)
                                 .body(Map.of("message", "Acesso negado."));
-                    agendamento.setId(id);
+                    
+                    // Atualiza apenas campos permitidos do DTO
+                    if (request.getDataHora() != null) existing.setDataHora(request.getDataHora());
+                    if (request.getServico() != null) existing.setServico(request.getServico());
+                    if (request.getDescricao() != null) existing.setDescricao(request.getDescricao());
+                    if (request.getRegiao() != null) existing.setRegiao(request.getRegiao());
+                    if (request.getLargura() != null) existing.setLargura(request.getLargura());
+                    if (request.getAltura() != null) existing.setAltura(request.getAltura());
+                    if (request.getTags() != null) existing.setTags(request.getTags());
+                    if (request.getImagemReferenciaUrl() != null) existing.setImagemReferenciaUrl(request.getImagemReferenciaUrl());
+                    if (request.getImagemResultadoUrl() != null) existing.setImagemResultadoUrl(request.getImagemResultadoUrl());
+                    if (request.getValorPago() != null) existing.setValorPago(request.getValorPago());
+                    if (request.getValorPendente() != null) existing.setValorPendente(request.getValorPendente());
+                    
                     return ResponseEntity.ok(
-                            new AgendamentoDashboard(agendamentoService.saveAgendamento(agendamento)));
+                            new AgendamentoDashboard(agendamentoService.saveAgendamento(existing)));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

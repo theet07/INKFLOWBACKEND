@@ -132,10 +132,10 @@ public class AgendamentoController {
                             .filter(ag -> status.equals(ag.getStatus()))
                             .map(AgendamentoDashboard::new)
                             .toList();
-                    return ResponseEntity.ok(resultado);
+                    return ResponseEntity.<Object>ok(resultado);
                 })
                 .orElse(ResponseEntity.status(403)
-                        .body(Map.of("message", "Acesso negado.")));
+                        .<Object>body(Map.of("message", "Acesso negado.")));
     }
 
     @PatchMapping("/{id}/status")

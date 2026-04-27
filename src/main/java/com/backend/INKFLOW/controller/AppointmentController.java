@@ -57,17 +57,16 @@ public class AppointmentController {
     @GetMapping("/cliente/{clienteId}")
     public ResponseEntity<?> getByCliente(@PathVariable Long clienteId, Authentication auth) {
         boolean isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        var agendamentos = agendamentoService.getAgendamentosByClienteId(clienteId);
         if (!isAdmin) {
-            boolean isOwner = agendamentoService.getAgendamentosByClienteId(clienteId)
-                    .stream().findFirst()
+            boolean isOwner = agendamentos.stream().findFirst()
                     .map(ag -> ag.getCliente().getEmail().equals(auth.getName()))
                     .orElse(true);
             if (!isOwner)
                 return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         }
         return ResponseEntity.ok(
-                agendamentoService.getAgendamentosByClienteId(clienteId)
-                        .stream().map(AgendamentoDashboard::new).toList());
+                agendamentos.stream().map(AgendamentoDashboard::new).toList());
     }
 
     /** PUT /api/appointments/{id}/avaliar — apenas o cliente dono pode avaliar */

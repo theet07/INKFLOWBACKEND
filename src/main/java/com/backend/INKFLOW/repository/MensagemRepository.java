@@ -25,6 +25,8 @@ public interface MensagemRepository extends JpaRepository<Mensagem, Long> {
 
     List<Mensagem> findByDestinatarioIdAndLidaFalse(Long destinatarioId);
 
+    List<Mensagem> findByDestinatarioIdAndRemetenteIdAndLidaFalse(Long destinatarioId, Long remetenteId);
+
     @Query("SELECT DISTINCT m.remetenteId FROM Mensagem m WHERE m.destinatarioId = :artistaId")
     List<Long> findRemetentesDoArtista(@Param("artistaId") Long artistaId);
 }

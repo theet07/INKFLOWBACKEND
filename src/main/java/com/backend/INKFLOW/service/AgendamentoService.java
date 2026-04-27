@@ -209,7 +209,14 @@ public class AgendamentoService {
         return agendamentoRepository.save(agendamento);
     }
 
+    private static final java.util.Set<String> VALID_STATUSES = java.util.Set.of(
+            "PENDENTE", "CONFIRMADO", "REALIZADO", "CANCELADO", "FINALIZADO");
+
     public Optional<Agendamento> updateStatus(Long id, String status, Integer avaliacao, String observacoes) {
+        if (status != null && !VALID_STATUSES.contains(status.toUpperCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Status invalido. Valores aceitos: " + VALID_STATUSES);
+        }
         return agendamentoRepository.findById(id).map(ag -> {
             ag.setStatus(status);
             if (avaliacao != null) ag.setAvaliacao(avaliacao);

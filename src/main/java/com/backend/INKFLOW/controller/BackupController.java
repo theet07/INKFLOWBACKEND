@@ -62,7 +62,6 @@ public class BackupController {
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".sql";
             log.info("Download de backup solicitado: {}", filename);
-            emailService.enviarBackupEmail(sql, filename);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.parseMediaType("application/sql"))

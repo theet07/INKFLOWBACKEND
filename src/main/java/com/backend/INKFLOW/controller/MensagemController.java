@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/api/mensagens")
@@ -128,33 +129,37 @@ public class MensagemController {
         
         List<Mensagem> naoLidas = mensagemRepository.findByDestinatarioIdAndLidaFalse(userIdDoToken);
         
-        // Enriquecer com dados do remetente
+        // Batch lookup: coleta todos os IDs de remetentes unicos para evitar N+1
+        java.util.Set<Long> remetenteIds = naoLidas.stream()
+                .map(Mensagem::getRemetenteId)
+                .collect(java.util.stream.Collectors.toSet());
+        
+        // Pre-carrega nomes em um mapa: id -> nome
+        Map<Long, String> nomesCache = new java.util.HashMap<>();
+        for (Long rid : remetenteIds) {
+            var artista = artistaService.getById(rid.intValue());
+            if (artista.isPresent()) {
+                nomesCache.put(rid, artista.get().getNome());
+            } else {
+                var cliente = clienteService.getClienteById(rid);
+                nomesCache.put(rid, cliente.map(c -> c.getFullName()).orElse("Usuário"));
+            }
+        }
+        
         List<Map<String, Object>> resultado = naoLidas.stream().map(msg -> {
             Map<String, Object> info = new java.util.LinkedHashMap<>();
             info.put("id", msg.getId());
             info.put("conteudo", msg.getConteudo());
             info.put("createdAt", msg.getCreatedAt());
             info.put("remetenteId", msg.getRemetenteId());
-            
-            // Buscar nome do remetente (pode ser artista ou cliente)
-            String remetenteNome = "Usuário";
-            var artista = artistaService.getById(msg.getRemetenteId().intValue());
-            if (artista.isPresent()) {
-                remetenteNome = artista.get().getNome();
-            } else {
-                var cliente = clienteService.getClienteById(msg.getRemetenteId());
-                if (cliente.isPresent()) {
-                    remetenteNome = cliente.get().getFullName();
-                }
-            }
-            info.put("remetenteNome", remetenteNome);
-            
+            info.put("remetenteNome", nomesCache.getOrDefault(msg.getRemetenteId(), "Usuário"));
             return info;
         }).toList();
         
         return ResponseEntity.ok(resultado);
     }
 
+    @Transactional
     @PatchMapping("/marcar-todas-lidas")
     public ResponseEntity<?> marcarTodasLidas(Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);
@@ -167,16 +172,15 @@ public class MensagemController {
         return ResponseEntity.ok(Map.of("message", "Mensagens marcadas como lidas", "total", naoLidas.size()));
     }
 
+    @Transactional
     @PatchMapping("/marcar-lidas-por-remetente/{remetenteId}")
     public ResponseEntity<?> marcarLidasPorRemetente(@PathVariable Long remetenteId, Authentication auth) {
         Long userIdDoToken = resolveUserId(auth);
         if (userIdDoToken == null) return ResponseEntity.status(403).build();
         
-        // Buscar mensagens não lidas deste remetente específico para o usuário logado
-        List<Mensagem> naoLidas = mensagemRepository.findByDestinatarioIdAndLidaFalse(userIdDoToken)
-            .stream()
-            .filter(msg -> msg.getRemetenteId().equals(remetenteId))
-            .toList();
+        // Usa query dedicada em vez de carregar todas e filtrar em memoria
+        List<Mensagem> naoLidas = mensagemRepository
+                .findByDestinatarioIdAndRemetenteIdAndLidaFalse(userIdDoToken, remetenteId);
         
         naoLidas.forEach(msg -> msg.setLida(true));
         mensagemRepository.saveAll(naoLidas);

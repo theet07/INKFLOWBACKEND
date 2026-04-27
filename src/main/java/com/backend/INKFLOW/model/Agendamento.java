@@ -40,7 +40,7 @@ public class Agendamento {
     private Double valorPendente;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "regiao", length = 100, nullable = true)
     private String regiao;
@@ -64,7 +64,13 @@ public class Agendamento {
     private boolean avaliado = false;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 
     @PreUpdate
     public void onUpdate() { this.updatedAt = LocalDateTime.now(); }

@@ -53,6 +53,22 @@ git push origin teste
   - Artista (ArtistDashboard.jsx): badge no sino para agendamentos + mensagens
   - Som de beep ao receber nova mensagem (configurável)
   - Preferências salvas em localStorage (sino, mensagens, som)
+- Sistema de contato via backend (Spring Boot Mail):
+  - Endpoint `/api/contato` público enviando emails para `inkflowstudios07@gmail.com`
+  - Contact.jsx redesenhado com tema escuro ArtistDashboard.css
+  - Contadores de caracteres (Nome 60, Email 50, Mensagem 1000)
+  - Formatação automática de telefone brasileiro (11) 96440-9607
+- Sistema de captura de leads para artistas:
+  - Endpoint `/api/leads/artista` com validações e prevenção de duplicatas
+  - ArtistLandingPage.jsx com formulário completo, vídeo demo real, 5 screenshots do dashboard
+  - Banner de sucesso inline após submissão
+  - Lightbox para zoom de imagens
+  - Emails de confirmação para artista e notificação para equipe
+- Validação de senha forte:
+  - Backend: regex `^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$` com Jakarta Validation
+  - Frontend: checklist visual com 4 regras, toggle show/hide password
+  - Aplicado em ClienteCreateRequest e AdminCreateRequest
+- Portfolio.jsx com filtros redesenhados (minimalista, sem hover)
 
 ## Estrutura dos Projetos
 - Frontend correto: INKFLOWFRONTEND-LIMPO
@@ -169,6 +185,16 @@ git push origin teste
   - Envia e-mail para `inkflowstudios07@gmail.com`
   - Validação: nome, email e mensagem obrigatórios
   - Limite: mensagem até 2000 caracteres
+  - Subject: "Novo contato via InkFlow — {nome}"
+  - ReplyTo: email do remetente
+
+### Leads de Artistas
+- `POST /api/leads/artista` → `{ nomeCompleto, nomeEstudio, email, whatsapp, especialidade }` (público)
+  - Validações: nome min 3 chars, email válido, WhatsApp 11 dígitos
+  - Prevenção de duplicatas por WhatsApp
+  - Envia email de confirmação para o artista
+  - Envia notificação para `inkflowstudios07@gmail.com` com link WhatsApp
+  - Salva no banco com status "PENDENTE"
 
 ---
 
@@ -317,6 +343,14 @@ showToast('Mensagem de erro', true) // segundo parâmetro = isError
 - **Problema**: UX ruim - usuário não conseguia revisar antes de marcar
 - **Solução**: Marcar como lidas ao FECHAR sino, não ao abrir
 
+### 5. EmailJS removido do frontend
+- **Problema**: Dependência externa desnecessária, credenciais expostas no frontend
+- **Solução**: Implementado Spring Boot Mail no backend com endpoint `/api/contato`
+
+### 6. Contact.jsx com autocomplete branco
+- **Problema**: Browser aplicava background branco em inputs com autocomplete
+- **Solução**: Adicionar `colorScheme: 'dark'` inline em todos os inputs/textareas
+
 ---
 
 ## Variáveis de Ambiente
@@ -334,6 +368,12 @@ cloudinary.api-secret=...
 groq.api.key=...
 GMAIL_USER=inkflowstudios07@gmail.com
 GMAIL_APP_PASSWORD=<senha de app do Gmail>
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=${GMAIL_USER}
+spring.mail.password=${GMAIL_APP_PASSWORD}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
 ```
 
 **Instruções para gerar senha de app do Gmail:**
@@ -355,6 +395,92 @@ VITE_CLOUDINARY_UPLOAD_PRESET=<preset>
 // Remover /v1 para endpoints customizados (mensagens, chat)
 const API_URL = import.meta.env.VITE_API_URL?.replace('/v1', '') || 'https://inkflowbackend-4w1g.onrender.com/api'
 ```
+
+---
+
+## Design System
+
+### Cores Principais
+- **Background Principal**: `#0a0a0a` (preto profundo)
+- **Background Secundário**: `#1a1a1a` (cards, inputs)
+- **Vermelho Primário**: `#E21B3C` (botões, títulos, estados ativos)
+- **Texto Branco**: `#ffffff`
+- **Texto Secundário**: `rgba(255,255,255,0.7)`
+- **Borda Sutil**: `rgba(255,255,255,0.1)`
+- **Input Background**: `rgba(255,255,255,0.04)`
+- **WhatsApp Verde**: `#25D366`
+- **Sucesso Verde**: `#22c55e`
+- **Aviso Vermelho**: `#E21B3C`
+
+### Padrões de Estilo
+- **Labels**: uppercase, `letter-spacing: 1px`, `font-size: 0.75rem`
+- **Inputs**: `colorScheme: 'dark'` obrigatório para prevenir autocomplete branco
+- **Botões Primários**: gradient vermelho `linear-gradient(135deg, #E21B3C 0%, #8B0000 100%)`
+- **Botões Secundários**: background `#1a1a1a`, hover `#2a2a2a`
+- **Cards**: background `#1a1a1a`, border `rgba(255,255,255,0.1)`, border-radius `12px`
+- **Transições**: `0.3s ease` para hover/focus
+
+### Contadores de Caracteres
+```javascript
+// Padrão para contadores visuais
+const charCount = value.length
+const maxChars = 60
+const isNearLimit = charCount > maxChars * 0.9
+
+<span style={{ color: isNearLimit ? '#E21B3C' : 'rgba(255,255,255,0.5)' }}>
+  {charCount}/{maxChars}
+</span>
+```
+
+### Formatação de Telefone Brasileiro
+```javascript
+const formatTelefone = (value) => {
+  const nums = value.replace(/\D/g, '').slice(0, 11)
+  if (nums.length <= 2) return nums
+  if (nums.length <= 7) return `(${nums.slice(0,2)}) ${nums.slice(2)}`
+  return `(${nums.slice(0,2)}) ${nums.slice(2,7)}-${nums.slice(7)}`
+}
+```
+
+### Validação de Senha (Frontend)
+```javascript
+const passwordValidation = {
+  minLength: password.length >= 8,
+  hasUpperCase: /[A-Z]/.test(password),
+  hasNumber: /[0-9]/.test(password),
+  hasSpecialChar: /[!@#$%^&*]/.test(password)
+}
+
+const isPasswordValid = Object.values(passwordValidation).every(v => v)
+```
+
+### Validação de Senha (Backend)
+```java
+@Pattern(
+  regexp = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$",
+  message = "A senha deve ter no mínimo 8 caracteres, incluindo letra maiúscula, número e caractere especial (!@#$%^&*)"
+)
+private String password;
+```
+
+---
+
+## Auditoria de Segurança
+
+### Resumo
+- **8 Critical**: URLs hardcoded, OTP sem expiração, hooks condicionais, Cloudinary exposto, etc.
+- **12 Medium**: Rate limiting ausente, CORS permissivo, validações fracas, etc.
+- **10 Low**: UX issues, logs excessivos, mensagens de erro genéricas, etc.
+
+### Top 3 Prioridades para Apresentação (1 hora)
+1. **#1 URLs Hardcoded** (15 min): Criar variáveis de ambiente para todas as URLs
+2. **#6 OTP sem Expiração** (30 min): Adicionar campo `expiresAt` em `CodigoVerificacao`
+3. **#11 React Hooks Condicionais** (10 min): Mover hooks para topo dos componentes
+
+### Prioridades Secundárias (2 horas adicionais)
+4. **#2 Cloudinary Proxy** (45 min): Criar endpoint `/api/upload` no backend
+5. **#7 Contact Rate Limiting** (30 min): Implementar Bucket4j em `/api/contato`
+6. **#9 CORS Restrito** (15 min): Substituir `allowedOrigins("*")` por domínios específicos
 
 ---
 

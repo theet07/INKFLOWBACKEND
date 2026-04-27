@@ -32,6 +32,9 @@ public class Cliente {
     @Column(name = "tentativas_otp", nullable = false)
     private Integer tentativasOtp = 0;
 
+    @Column(name = "otp_created_at")
+    private LocalDateTime otpCreatedAt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
     
@@ -74,6 +77,9 @@ public class Cliente {
 
     public Integer getTentativasOtp() { return tentativasOtp; }
     public void setTentativasOtp(Integer tentativasOtp) { this.tentativasOtp = tentativasOtp; }
+
+    public LocalDateTime getOtpCreatedAt() { return otpCreatedAt; }
+    public void setOtpCreatedAt(LocalDateTime otpCreatedAt) { this.otpCreatedAt = otpCreatedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

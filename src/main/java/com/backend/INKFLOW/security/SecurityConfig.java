@@ -25,6 +25,12 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private AgendamentoRateLimitFilter agendamentoRateLimitFilter;
+
+    @Autowired
+    private ContatoRateLimitFilter contatoRateLimitFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
@@ -116,6 +122,8 @@ public class SecurityConfig {
 
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(agendamentoRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(contatoRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

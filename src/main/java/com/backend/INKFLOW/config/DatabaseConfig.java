@@ -115,15 +115,11 @@ public class DatabaseConfig {
         }
 
         // ============================================================
-        // FALLBACK: localhost
+        // FALLBACK: Falha se nenhuma variável de ambiente estiver configurada
         // ============================================================
-        log.warn("Nenhuma variavel de banco encontrada. Usando localhost como fallback.");
-        return DataSourceBuilder.create()
-                .url("jdbc:postgresql://localhost:5432/inkflow")
-                .username("postgres")
-                .password("postgres")
-                .driverClassName("org.postgresql.Driver")
-                .build();
+        log.error("ERRO CRITICO: Nenhuma variavel de banco de dados configurada!");
+        log.error("Configure DB_URL + DB_USERNAME + DB_PASSWORD ou DATABASE_URL");
+        throw new RuntimeException("Configuracao de banco de dados ausente. Configure as variaveis de ambiente.");
     }
 
     /**

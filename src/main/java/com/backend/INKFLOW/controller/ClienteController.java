@@ -202,7 +202,7 @@ public class ClienteController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Erro ao deletar cliente {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente."));
         }
     }
 

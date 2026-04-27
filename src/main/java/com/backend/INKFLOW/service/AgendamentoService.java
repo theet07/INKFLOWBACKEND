@@ -119,6 +119,9 @@ public class AgendamentoService {
         if (body.get("tags") != null)       ag.setTags((String) body.get("tags"));
         if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
 
+        // Validação anti double-booking: verifica conflito de horário
+        verificarConflito(artistaId, dataHora);
+
         log.info("[Agendamento] Direto: clienteId={} artistaId={} dataHora={}", clienteId, artistaId, dataHora);
         return agendamentoRepository.save(ag);
     }
@@ -174,6 +177,9 @@ public class AgendamentoService {
         if (body.get("tags") != null)       ag.setTags((String) body.get("tags"));
         if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
 
+        // Validação anti double-booking: verifica conflito de horário
+        verificarConflito(artistId, dataHora);
+
         log.info("[Agendamento] LandingPage: clienteEmail={} artistaId={} dataHora={}", clienteEmail, artistId, dataHora);
         return agendamentoRepository.save(ag);
     }
@@ -223,5 +229,26 @@ public class AgendamentoService {
 
     public void deleteAgendamento(Long id) {
         agendamentoRepository.deleteById(id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Validação de conflitos
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verifica se já existe um agendamento ativo no mesmo horário para o artista.
+     * Previne double-booking quando dois clientes tentam agendar simultaneamente.
+     */
+    private void verificarConflito(Integer artistaId, LocalDateTime dataHora) {
+        List<Agendamento> ocupados = agendamentoRepository.findOcupadosByArtistaIdAndDia(
+                artistaId,
+                dataHora.toLocalDate().atStartOfDay(),
+                dataHora.toLocalDate().plusDays(1).atStartOfDay());
+        boolean horarioOcupado = ocupados.stream()
+                .anyMatch(c -> c.getDataHora().equals(dataHora));
+        if (horarioOcupado) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Este horário já está ocupado. Escolha outro horário.");
+        }
     }
 }

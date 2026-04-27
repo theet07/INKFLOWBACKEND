@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -61,7 +62,7 @@ public class LandingPageController {
             return ResponseEntity.ok(dias);
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao carregar disponibilidade: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao carregar disponibilidade."));
         }
     }
 
@@ -90,7 +91,7 @@ public class LandingPageController {
                     .body(Map.of("message", "Formato de data invalido. Use YYYY-MM-DD."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao carregar slots: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao carregar slots."));
         }
     }
 
@@ -138,7 +139,19 @@ public class LandingPageController {
      * Requer autenticacao — alias do endpoint existente no dashboard.
      */
     @GetMapping("/appointments")
-    public ResponseEntity<?> getAppointments(@RequestParam Integer artistId) {
+    public ResponseEntity<?> getAppointments(@RequestParam Integer artistId, Authentication auth) {
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            // Artista so pode ver os proprios agendamentos
+            boolean isOwner = artistaService.getByEmail(auth.getName())
+                    .map(a -> a.getId().equals(artistId))
+                    .orElse(false);
+            if (!isOwner) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "Acesso negado."));
+            }
+        }
         return ResponseEntity.ok(
                 agendamentoService.getAgendamentosByArtistaId(artistId)
         );

@@ -70,7 +70,7 @@ public class BackupController {
         } catch (Exception e) {
             log.error("Erro ao gerar backup para download: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao gerar backup: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao gerar backup."));
         }
     }
 
@@ -87,7 +87,7 @@ public class BackupController {
         } catch (Exception e) {
             log.error("Erro ao disparar backup por email: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao enviar backup: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao enviar backup."));
         }
     }
 }

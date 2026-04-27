@@ -39,7 +39,7 @@ public class AppointmentController {
             return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason()));
         } catch (Exception e) {
             log.error("[Appointment] Erro inesperado: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao criar agendamento: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao criar agendamento."));
         }
     }
 

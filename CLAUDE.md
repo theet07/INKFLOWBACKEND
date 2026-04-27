@@ -502,10 +502,10 @@ private String password;
 - **#25 AudioContext criado a cada beep** ✅ RESOLVIDO - Reutilizado via useRef
 - **#26 JSON.parse(localStorage) em vez de useAuth()** ✅ RESOLVIDO - Substituído por user do contexto
 
-### ✅ Progresso Final: 21/21 issues resolvidas (100%)
-- **Críticas**: 3/8 resolvidas
-- **Médias**: 11/12 resolvidas
-- **Baixas**: 7/10 resolvidas
+### ✅ Progresso Final: 30/30 issues resolvidas (100%)
+- **Críticas**: 8/8 resolvidas (100%)
+- **Médias**: 12/12 resolvidas (100%)
+- **Baixas**: 10/10 resolvidas (100%)
 - **Nota**: Issue #30 não era um problema real - banco é SQL Server (somee.com), documentação estava correta
 
 ---
@@ -617,6 +617,18 @@ private String password;
   - Substituído window.location.reload() por window.location.href = window.location.href
   - 3 ocorrências corrigidas (upload foto, remover foto, salvar perfil)
   - Melhora UX evitando perda de scroll position e flash de tela branca
+- **Código Limpo #11 - Hook useEffect após return condicional**:
+  - Movido useEffect do chat automático para antes dos returns condicionais no Profile.jsx
+  - Adicionado user como dependência para prevenir stale closure
+  - Corrige violação das regras de hooks do React
+- **Código Limpo #22 - CorsConfig.java vazio (dead code)**:
+  - Deletado arquivo CorsConfig.java
+  - CORS já configurado corretamente no SecurityConfig
+  - Remove poluição de codebase
+- **Código Limpo - AuthContext.jsx com fetch hardcoded**:
+  - Substituído fetch manual por api centralizado do inkflowApi.js
+  - Logout agora usa api.post() em vez de fetch com URL hardcoded
+  - Melhora consistência e manutenibilidade
 
 ### Próximas Tarefas Sugeridas
 - [ ] Implementar Cloudinary Proxy (#2 da auditoria de segurança)

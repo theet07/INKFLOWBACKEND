@@ -210,7 +210,7 @@ public class AgendamentoService {
     }
 
     private static final java.util.Set<String> VALID_STATUSES = java.util.Set.of(
-            "PENDENTE", "CONFIRMADO", "REALIZADO", "CANCELADO", "FINALIZADO");
+            "PENDENTE", "AGENDADO", "CONFIRMADO", "EM_ANDAMENTO", "REALIZADO", "CANCELADO", "FINALIZADO");
 
     public Optional<Agendamento> updateStatus(Long id, String status, Integer avaliacao, String observacoes) {
         if (status != null && !VALID_STATUSES.contains(status.toUpperCase())) {

@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -102,7 +103,7 @@ public class AgendamentoService {
         }
 
         // Validação: não permite agendamento no passado
-        if (dataHora.isBefore(LocalDateTime.now())) {
+        if (dataHora.isBefore(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
         }
 
@@ -158,7 +159,7 @@ public class AgendamentoService {
         }
 
         // Validação: não permite agendamento no passado
-        if (dataHora.isBefore(LocalDateTime.now())) {
+        if (dataHora.isBefore(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
         }
 

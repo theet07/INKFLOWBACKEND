@@ -4,7 +4,7 @@ import com.backend.INKFLOW.dto.LeadArtistaRequest;
 import com.backend.INKFLOW.model.LeadArtista;
 import com.backend.INKFLOW.repository.LeadArtistaRepository;
 import com.backend.INKFLOW.service.ChatRateLimitService;
-import com.backend.INKFLOW.service.EmailAsyncService;
+import com.backend.INKFLOW.service.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class LeadController {
     private LeadArtistaRepository leadRepository;
 
     @Autowired
-    private EmailAsyncService emailAsyncService;
+    private EmailService emailService;
     
     @Autowired
     private ChatRateLimitService rateLimitService;
@@ -85,8 +85,8 @@ public class LeadController {
             lead.setEspecialidade(request.getEspecialidade().trim());
             leadRepository.save(lead);
 
-            // Enviar emails de forma assíncrona (não bloqueia a resposta)
-            emailAsyncService.enviarEmailsLead(request, emailTrimmed, whatsappLimpo);
+            // Enviar email de confirmação
+            emailService.enviarEmailConfirmacaoLead(emailTrimmed, request.getNomeCompleto(), request.getNomeEstudio(), request.getEspecialidade(), request.getWhatsapp());
 
             return ResponseEntity.ok(Map.of(
                 "message", "Cadastro realizado com sucesso! Entraremos em contato via WhatsApp.",
@@ -106,8 +106,12 @@ public class LeadController {
             return ResponseEntity.badRequest().body(Map.of("error", "Email é obrigatório"));
         }
         
-        emailAsyncService.enviarEmailTeste(emailDestino);
-        return ResponseEntity.ok(Map.of("message", "Email sendo enviado em background", "destinatario", emailDestino));
+        try {
+            emailService.enviarCodigoVerificacao(emailDestino, "123456");
+            return ResponseEntity.ok(Map.of("message", "Email enviado", "destinatario", emailDestino));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
     
     private String getClientIp(HttpServletRequest request) {

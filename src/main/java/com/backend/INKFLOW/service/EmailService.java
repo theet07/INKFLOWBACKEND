@@ -47,6 +47,31 @@ public class EmailService {
         }
     }
 
+    public void enviarEmailConfirmacaoLead(String destinatario, String nomeCompleto, String nomeEstudio, String especialidade, String whatsapp) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(remetente);
+            message.setTo(destinatario);
+            message.setSubject("Recebemos sua solicitação - InkFlow 🎨");
+            message.setText(
+                "Olá, " + nomeCompleto + "!\n\n" +
+                "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
+                "Dados recebidos:\n" +
+                "• Estúdio: " + nomeEstudio + "\n" +
+                "• Especialidade: " + especialidade + "\n" +
+                "• WhatsApp: " + whatsapp + "\n\n" +
+                "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
+                "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
+                "Atenciosamente,\n" +
+                "Equipe InkFlow"
+            );
+            mailSender.send(message);
+            log.info("Email de confirmacao de lead enviado para: {}", destinatario);
+        } catch (Exception e) {
+            log.error("Falha ao enviar email de confirmacao para {}: {}", destinatario, e.getMessage());
+        }
+    }
+
     public void enviarBackupEmail(String conteudo, String filename) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

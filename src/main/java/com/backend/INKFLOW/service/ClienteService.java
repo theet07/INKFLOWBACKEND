@@ -34,6 +34,18 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
     
+    public Optional<Cliente> getById(Long id) {
+        return clienteRepository.findById(id);
+    }
+    
+    public Optional<Cliente> getByEmail(String email) {
+        return clienteRepository.findByEmail(email);
+    }
+    
+    public Cliente save(Cliente cliente) {
+        return clienteRepository.save(cliente);
+    }
+    
     public Optional<Cliente> getClienteById(Long id) {
         return clienteRepository.findById(id);
     }

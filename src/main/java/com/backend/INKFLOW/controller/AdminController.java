@@ -264,4 +264,77 @@ public class AdminController {
         });
         return ResponseEntity.badRequest().body(Map.of("message", errors.values().iterator().next()));
     }
-}
+
+    // ── Atualizar Usuários ───────────────────────────────────────
+    @PutMapping("/usuarios/cliente/{id}")
+    public ResponseEntity<?> updateCliente(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        try {
+            Optional<Cliente> clienteOpt = clienteService.getById(id);
+            if (clienteOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "Cliente não encontrado."));
+            }
+            
+            Cliente cliente = clienteOpt.get();
+            
+            // Atualizar campos permitidos
+            if (updates.containsKey("nome")) {
+                cliente.setFullName((String) updates.get("nome"));
+            }
+            if (updates.containsKey("email")) {
+                String newEmail = (String) updates.get("email");
+                // Verificar se email já existe em outro cliente
+                Optional<Cliente> existingCliente = clienteService.getByEmail(newEmail);
+                if (existingCliente.isPresent() && !existingCliente.get().getId().equals(id)) {
+                    return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+                }
+                cliente.setEmail(newEmail);
+            }
+            if (updates.containsKey("telefone")) {
+                cliente.setTelefone((String) updates.get("telefone"));
+            }
+            if (updates.containsKey("verificado")) {
+                cliente.setContaVerificada((Boolean) updates.get("verificado"));
+            }
+            
+            clienteService.save(cliente);
+            return ResponseEntity.ok(Map.of("message", "Cliente atualizado com sucesso."));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao atualizar cliente: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/usuarios/artista/{id}")
+    public ResponseEntity<?> updateArtista(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
+        try {
+            Optional<Artista> artistaOpt = artistaService.getById(id);
+            if (artistaOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "Artista não encontrado."));
+            }
+            
+            Artista artista = artistaOpt.get();
+            
+            // Atualizar campos permitidos
+            if (updates.containsKey("nome")) {
+                artista.setNome((String) updates.get("nome"));
+            }
+            if (updates.containsKey("email")) {
+                String newEmail = (String) updates.get("email");
+                // Verificar se email já existe em outro artista
+                Optional<Artista> existingArtista = artistaRepository.findByEmail(newEmail);
+                if (existingArtista.isPresent() && !existingArtista.get().getId().equals(id)) {
+                    return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+                }
+                artista.setEmail(newEmail);
+            }
+            if (updates.containsKey("verificado")) {
+                artista.setAtivo((Boolean) updates.get("verificado"));
+            }
+            
+            artistaRepository.save(artista);
+            return ResponseEntity.ok(Map.of("message", "Artista atualizado com sucesso."));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao atualizar artista: " + e.getMessage()));
+        }
+    }

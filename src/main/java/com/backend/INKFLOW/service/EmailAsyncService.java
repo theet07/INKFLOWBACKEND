@@ -10,6 +10,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+
 @Service
 public class EmailAsyncService {
     private static final Logger log = LoggerFactory.getLogger(EmailAsyncService.class);
@@ -22,26 +24,28 @@ public class EmailAsyncService {
     @Value("${spring.mail.username}")
     private String remetente;
     
-    @Async("emailExecutor")
     public void enviarEmailsLead(LeadArtistaRequest request, String emailTrimmed, String whatsappLimpo) {
-        enviarComRetry(emailTrimmed, () -> {
-            SimpleMailMessage mailArtista = new SimpleMailMessage();
-            mailArtista.setFrom(remetente);
-            mailArtista.setTo(emailTrimmed);
-            mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
-            mailArtista.setText(
-                "Olá, " + request.getNomeCompleto() + "!\n\n" +
-                "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
-                "Dados recebidos:\n" +
-                "• Estúdio: " + request.getNomeEstudio() + "\n" +
-                "• Especialidade: " + request.getEspecialidade() + "\n" +
-                "• WhatsApp: " + request.getWhatsapp() + "\n\n" +
-                "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
-                "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
-                "Atenciosamente,\n" +
-                "Equipe InkFlow"
-            );
-            mailSender.send(mailArtista);
+        // Usar CompletableFuture para executar em background mantendo contexto
+        CompletableFuture.runAsync(() -> {
+            enviarComRetry(emailTrimmed, () -> {
+                SimpleMailMessage mailArtista = new SimpleMailMessage();
+                mailArtista.setFrom(remetente);
+                mailArtista.setTo(emailTrimmed);
+                mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
+                mailArtista.setText(
+                    "Olá, " + request.getNomeCompleto() + "!\n\n" +
+                    "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
+                    "Dados recebidos:\n" +
+                    "• Estúdio: " + request.getNomeEstudio() + "\n" +
+                    "• Especialidade: " + request.getEspecialidade() + "\n" +
+                    "• WhatsApp: " + request.getWhatsapp() + "\n\n" +
+                    "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
+                    "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
+                    "Atenciosamente,\n" +
+                    "Equipe InkFlow"
+                );
+                mailSender.send(mailArtista);
+            });
         });
     }
     
@@ -69,15 +73,16 @@ public class EmailAsyncService {
         }
     }
     
-    @Async("emailExecutor")
     public void enviarEmailTeste(String emailDestino) {
-        enviarComRetry(emailDestino, () -> {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(remetente);
-            message.setTo(emailDestino);
-            message.setSubject("Teste de Email - InkFlow");
-            message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");
-            mailSender.send(message);
+        CompletableFuture.runAsync(() -> {
+            enviarComRetry(emailDestino, () -> {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(remetente);
+                message.setTo(emailDestino);
+                message.setSubject("Teste de Email - InkFlow");
+                message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");
+                mailSender.send(message);
+            });
         });
     }
 }

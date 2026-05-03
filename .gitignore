@@ -36,6 +36,8 @@ build/
 .env
 run.ps1
 *.env
+CLAUDE.md
+claude.md
 
 ### Segredos e credenciais ###
 *.key

@@ -49,7 +49,11 @@ public class LeadController {
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "E-mail é obrigatório."));
         }
-        if (!request.getEmail().matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+        String emailTrimmed = request.getEmail().trim();
+        if (emailTrimmed.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "E-mail não pode ser vazio."));
+        }
+        if (!emailTrimmed.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
             return ResponseEntity.badRequest().body(Map.of("error", "E-mail inválido."));
         }
         if (request.getWhatsapp() == null || request.getWhatsapp().trim().isEmpty()) {
@@ -77,7 +81,7 @@ public class LeadController {
             LeadArtista lead = new LeadArtista();
             lead.setNomeCompleto(request.getNomeCompleto().trim());
             lead.setNomeEstudio(request.getNomeEstudio().trim());
-            lead.setEmail(request.getEmail().trim().toLowerCase());
+            lead.setEmail(emailTrimmed.toLowerCase());
             lead.setWhatsapp(whatsappLimpo);
             lead.setEspecialidade(request.getEspecialidade().trim());
             leadRepository.save(lead);
@@ -85,7 +89,7 @@ public class LeadController {
             // Enviar email de confirmação para o artista
             try {
                 SimpleMailMessage mailArtista = new SimpleMailMessage();
-                mailArtista.setTo(request.getEmail());
+                mailArtista.setTo(emailTrimmed);
                 mailArtista.setSubject("Bem-vindo ao InkFlow! 🎨");
                 mailArtista.setText(
                     "Olá, " + request.getNomeCompleto() + "!\n\n" +
@@ -111,7 +115,7 @@ public class LeadController {
                     "NOVO LEAD CADASTRADO!\n\n" +
                     "Nome: " + request.getNomeCompleto() + "\n" +
                     "Estúdio: " + request.getNomeEstudio() + "\n" +
-                    "E-mail: " + request.getEmail() + "\n" +
+                    "E-mail: " + emailTrimmed + "\n" +
                     "WhatsApp: " + request.getWhatsapp() + "\n" +
                     "Especialidade: " + request.getEspecialidade() + "\n\n" +
                     "Link WhatsApp: https://wa.me/55" + whatsappLimpo + "\n\n" +

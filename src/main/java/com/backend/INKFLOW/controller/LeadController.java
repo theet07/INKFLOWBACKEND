@@ -88,26 +88,33 @@ public class LeadController {
 
             // Enviar email de confirmação para o artista
             try {
+                log.info("Tentando enviar email para artista: {}", emailTrimmed);
                 SimpleMailMessage mailArtista = new SimpleMailMessage();
+                mailArtista.setFrom("inkflowstudios07@gmail.com");
                 mailArtista.setTo(emailTrimmed);
-                mailArtista.setSubject("Bem-vindo ao InkFlow! 🎨");
+                mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
                 mailArtista.setText(
                     "Olá, " + request.getNomeCompleto() + "!\n\n" +
-                    "Recebemos seu interesse em fazer parte do InkFlow.\n\n" +
-                    "Estúdio: " + request.getNomeEstudio() + "\n" +
-                    "Especialidade: " + request.getEspecialidade() + "\n\n" +
-                    "Em breve entraremos em contato via WhatsApp (" + request.getWhatsapp() + ") para liberar seu acesso prioritário.\n\n" +
+                    "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
+                    "Dados recebidos:\n" +
+                    "• Estúdio: " + request.getNomeEstudio() + "\n" +
+                    "• Especialidade: " + request.getEspecialidade() + "\n" +
+                    "• WhatsApp: " + request.getWhatsapp() + "\n\n" +
+                    "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
                     "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
+                    "Atenciosamente,\n" +
                     "Equipe InkFlow"
                 );
                 mailSender.send(mailArtista);
+                log.info("Email enviado com sucesso para artista: {}", emailTrimmed);
             } catch (Exception e) {
                 // Log mas não falha a requisição
-                log.error("Erro ao enviar email para artista: {}", e.getMessage());
+                log.error("Erro ao enviar email para artista: {}", e.getMessage(), e);
             }
 
             // Enviar notificação para equipe InkFlow
             try {
+                log.info("Tentando enviar notificação para equipe InkFlow");
                 SimpleMailMessage mailEquipe = new SimpleMailMessage();
                 mailEquipe.setTo("inkflowstudios07@gmail.com");
                 mailEquipe.setSubject("🔥 Novo Lead de Artista - " + request.getNomeEstudio());
@@ -122,9 +129,10 @@ public class LeadController {
                     "Ação: Entrar em contato para liberar acesso beta."
                 );
                 mailSender.send(mailEquipe);
+                log.info("Notificação enviada com sucesso para equipe InkFlow");
             } catch (Exception e) {
                 // Log mas não falha a requisição
-                log.error("Erro ao enviar email para equipe: {}", e.getMessage());
+                log.error("Erro ao enviar email para equipe: {}", e.getMessage(), e);
             }
 
             return ResponseEntity.ok(Map.of(

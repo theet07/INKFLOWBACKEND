@@ -338,3 +338,4 @@ public class AdminController {
             return ResponseEntity.status(500).body(Map.of("message", "Erro ao atualizar artista: " + e.getMessage()));
         }
     }
+}

@@ -20,7 +20,6 @@ public class EmailAsyncService {
     @Value("${spring.mail.username}")
     private String remetente;
     
-    @Async
     public void enviarEmailsLead(LeadArtistaRequest request, String emailTrimmed, String whatsappLimpo) {
         // Enviar email de confirmação para o artista
         try {
@@ -71,7 +70,6 @@ public class EmailAsyncService {
         }
     }
     
-    @Async
     public void enviarEmailTeste(String emailDestino) {
         try {
             log.info("Testando envio de email para: {}", emailDestino);

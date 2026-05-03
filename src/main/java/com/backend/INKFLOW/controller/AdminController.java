@@ -338,4 +338,37 @@ public class AdminController {
             return ResponseEntity.status(500).body(Map.of("message", "Erro ao atualizar artista: " + e.getMessage()));
         }
     }
+
+    // ── Excluir Usuários ─────────────────────────────────────────
+    @DeleteMapping("/usuarios/cliente/{id}")
+    public ResponseEntity<?> deleteCliente(@PathVariable Long id) {
+        try {
+            Optional<Cliente> clienteOpt = clienteService.getById(id);
+            if (clienteOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "Cliente não encontrado."));
+            }
+            
+            clienteService.deleteCliente(id);
+            return ResponseEntity.ok(Map.of("message", "Cliente excluído com sucesso."));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao excluir cliente: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/usuarios/artista/{id}")
+    public ResponseEntity<?> deleteArtista(@PathVariable Long id) {
+        try {
+            Optional<Artista> artistaOpt = artistaService.getById(id);
+            if (artistaOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "Artista não encontrado."));
+            }
+            
+            artistaRepository.deleteById(id.intValue());
+            return ResponseEntity.ok(Map.of("message", "Artista excluído com sucesso."));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao excluir artista: " + e.getMessage()));
+        }
+    }
 }

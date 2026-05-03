@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailAsyncService {
     private static final Logger log = LoggerFactory.getLogger(EmailAsyncService.class);
+    private static final int MAX_RETRIES = 3;
+    private static final long RETRY_DELAY_MS = 2000;
     
     @Autowired
     private JavaMailSender mailSender;
@@ -20,11 +22,9 @@ public class EmailAsyncService {
     @Value("${spring.mail.username}")
     private String remetente;
     
-    @Async
+    @Async("emailExecutor")
     public void enviarEmailsLead(LeadArtistaRequest request, String emailTrimmed, String whatsappLimpo) {
-        // Enviar email de confirmação para o artista
-        try {
-            log.info("[ASYNC] Tentando enviar email para artista: {}", emailTrimmed);
+        enviarComRetry(emailTrimmed, () -> {
             SimpleMailMessage mailArtista = new SimpleMailMessage();
             mailArtista.setFrom(remetente);
             mailArtista.setTo(emailTrimmed);
@@ -42,25 +42,42 @@ public class EmailAsyncService {
                 "Equipe InkFlow"
             );
             mailSender.send(mailArtista);
-            log.info("[ASYNC] Email enviado com sucesso para artista: {}", emailTrimmed);
-        } catch (Exception e) {
-            log.error("[ASYNC] Erro ao enviar email para artista: {}", e.getMessage(), e);
+        });
+    }
+    
+    private void enviarComRetry(String destinatario, Runnable sendAction) {
+        for (int tentativa = 1; tentativa <= MAX_RETRIES; tentativa++) {
+            try {
+                log.info("[ASYNC] Tentativa {}/{} - Enviando para: {}", tentativa, MAX_RETRIES, destinatario);
+                sendAction.run();
+                log.info("[ASYNC] Email enviado com sucesso para: {}", destinatario);
+                return;
+            } catch (Exception e) {
+                log.warn("[ASYNC] Tentativa {}/{} falhou: {}", tentativa, MAX_RETRIES, e.getMessage());
+                if (tentativa < MAX_RETRIES) {
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS * tentativa);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        log.error("[ASYNC] Thread interrompida durante retry");
+                        return;
+                    }
+                } else {
+                    log.error("[ASYNC] Todas as tentativas falharam para: {}", destinatario, e);
+                }
+            }
         }
     }
     
-    @Async
+    @Async("emailExecutor")
     public void enviarEmailTeste(String emailDestino) {
-        try {
-            log.info("Testando envio de email para: {}", emailDestino);
+        enviarComRetry(emailDestino, () -> {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(remetente);
             message.setTo(emailDestino);
             message.setSubject("Teste de Email - InkFlow");
             message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");
             mailSender.send(message);
-            log.info("Email de teste enviado com sucesso para: {}", emailDestino);
-        } catch (Exception e) {
-            log.error("Erro ao enviar email de teste: {}", e.getMessage(), e);
-        }
+        });
     }
 }

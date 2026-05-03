@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -25,7 +27,7 @@ public class LeadController {
     private LeadArtistaRepository leadRepository;
 
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailAsyncService emailAsyncService;
     
     @Autowired
     private ChatRateLimitService rateLimitService;
@@ -86,63 +88,12 @@ public class LeadController {
             lead.setEspecialidade(request.getEspecialidade().trim());
             leadRepository.save(lead);
 
-            boolean emailArtistaEnviado = false;
-            boolean emailEquipeEnviado = false;
-
-            // Enviar email de confirmação para o artista
-            try {
-                log.info("Tentando enviar email para artista: {}", emailTrimmed);
-                SimpleMailMessage mailArtista = new SimpleMailMessage();
-                mailArtista.setFrom("inkflowstudios07@gmail.com");
-                mailArtista.setTo(emailTrimmed);
-                mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
-                mailArtista.setText(
-                    "Olá, " + request.getNomeCompleto() + "!\n\n" +
-                    "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
-                    "Dados recebidos:\n" +
-                    "• Estúdio: " + request.getNomeEstudio() + "\n" +
-                    "• Especialidade: " + request.getEspecialidade() + "\n" +
-                    "• WhatsApp: " + request.getWhatsapp() + "\n\n" +
-                    "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
-                    "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
-                    "Atenciosamente,\n" +
-                    "Equipe InkFlow"
-                );
-                mailSender.send(mailArtista);
-                emailArtistaEnviado = true;
-                log.info("Email enviado com sucesso para artista: {}", emailTrimmed);
-            } catch (Exception e) {
-                log.error("Erro ao enviar email para artista: {}", e.getMessage(), e);
-            }
-
-            // Enviar notificação para equipe InkFlow
-            try {
-                log.info("Tentando enviar notificação para equipe InkFlow");
-                SimpleMailMessage mailEquipe = new SimpleMailMessage();
-                mailEquipe.setTo("inkflowstudios07@gmail.com");
-                mailEquipe.setSubject("🔥 Novo Lead de Artista - " + request.getNomeEstudio());
-                mailEquipe.setText(
-                    "NOVO LEAD CADASTRADO!\n\n" +
-                    "Nome: " + request.getNomeCompleto() + "\n" +
-                    "Estúdio: " + request.getNomeEstudio() + "\n" +
-                    "E-mail: " + emailTrimmed + "\n" +
-                    "WhatsApp: " + request.getWhatsapp() + "\n" +
-                    "Especialidade: " + request.getEspecialidade() + "\n\n" +
-                    "Link WhatsApp: https://wa.me/55" + whatsappLimpo + "\n\n" +
-                    "Ação: Entrar em contato para liberar acesso beta."
-                );
-                mailSender.send(mailEquipe);
-                emailEquipeEnviado = true;
-                log.info("Notificação enviada com sucesso para equipe InkFlow");
-            } catch (Exception e) {
-                log.error("Erro ao enviar email para equipe: {}", e.getMessage(), e);
-            }
+            // Enviar emails de forma assíncrona (não bloqueia a resposta)
+            emailAsyncService.enviarEmailsLead(request, emailTrimmed, whatsappLimpo);
 
             return ResponseEntity.ok(Map.of(
                 "message", "Cadastro realizado com sucesso! Entraremos em contato via WhatsApp.",
-                "leadId", lead.getId(),
-                "emailArtistaEnviado", emailArtistaEnviado,
-                "emailEquipeEnviado", emailEquipeEnviado
+                "leadId", lead.getId()
             ));
 
         } catch (Exception e) {
@@ -158,6 +109,77 @@ public class LeadController {
             return ResponseEntity.badRequest().body(Map.of("error", "Email é obrigatório"));
         }
         
+        emailAsyncService.enviarEmailTeste(emailDestino);
+        return ResponseEntity.ok(Map.of("message", "Email sendo enviado em background", "destinatario", emailDestino));
+    }
+    
+    private String getClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        return request.getRemoteAddr();
+    }
+}
+
+// Serviço para envio assíncrono de emails
+@Component
+class EmailAsyncService {
+    private static final Logger log = LoggerFactory.getLogger(EmailAsyncService.class);
+    
+    @Autowired
+    private JavaMailSender mailSender;
+    
+    @Async
+    public void enviarEmailsLead(LeadArtistaRequest request, String emailTrimmed, String whatsappLimpo) {
+        // Enviar email de confirmação para o artista
+        try {
+            log.info("Tentando enviar email para artista: {}", emailTrimmed);
+            SimpleMailMessage mailArtista = new SimpleMailMessage();
+            mailArtista.setFrom("inkflowstudios07@gmail.com");
+            mailArtista.setTo(emailTrimmed);
+            mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
+            mailArtista.setText(
+                "Olá, " + request.getNomeCompleto() + "!\n\n" +
+                "Recebemos sua solicitação para se tornar um artista parceiro do InkFlow.\n\n" +
+                "Dados recebidos:\n" +
+                "• Estúdio: " + request.getNomeEstudio() + "\n" +
+                "• Especialidade: " + request.getEspecialidade() + "\n" +
+                "• WhatsApp: " + request.getWhatsapp() + "\n\n" +
+                "Nossa equipe irá analisar sua solicitação e retornaremos em breve via WhatsApp ou email.\n\n" +
+                "Enquanto isso, siga-nos no Instagram @inkflowstudios para novidades!\n\n" +
+                "Atenciosamente,\n" +
+                "Equipe InkFlow"
+            );
+            mailSender.send(mailArtista);
+            log.info("Email enviado com sucesso para artista: {}", emailTrimmed);
+        } catch (Exception e) {
+            log.error("Erro ao enviar email para artista: {}", e.getMessage(), e);
+        }
+
+        // Enviar notificação para equipe InkFlow
+        try {
+            log.info("Tentando enviar notificação para equipe InkFlow");
+            SimpleMailMessage mailEquipe = new SimpleMailMessage();
+            mailEquipe.setTo("inkflowstudios07@gmail.com");
+            mailEquipe.setSubject("🔥 Novo Lead de Artista - " + request.getNomeEstudio());
+            mailEquipe.setText(
+                "NOVO LEAD CADASTRADO!\n\n" +
+                "Nome: " + request.getNomeCompleto() + "\n" +
+                "Estúdio: " + request.getNomeEstudio() + "\n" +
+                "E-mail: " + emailTrimmed + "\n" +
+                "WhatsApp: " + request.getWhatsapp() + "\n" +
+                "Especialidade: " + request.getEspecialidade() + "\n\n" +
+                "Link WhatsApp: https://wa.me/55" + whatsappLimpo + "\n\n" +
+                "Ação: Entrar em contato para liberar acesso beta."
+            );
+            mailSender.send(mailEquipe);
+            log.info("Notificação enviada com sucesso para equipe InkFlow");
+        } catch (Exception e) {
+            log.error("Erro ao enviar email para equipe: {}", e.getMessage(), e);
+        }
+    }
+    
+    @Async
+    public void enviarEmailTeste(String emailDestino) {
         try {
             log.info("Testando envio de email para: {}", emailDestino);
             SimpleMailMessage message = new SimpleMailMessage();
@@ -167,16 +189,8 @@ public class LeadController {
             message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");
             mailSender.send(message);
             log.info("Email de teste enviado com sucesso para: {}", emailDestino);
-            return ResponseEntity.ok(Map.of("message", "Email enviado com sucesso!", "destinatario", emailDestino));
         } catch (Exception e) {
             log.error("Erro ao enviar email de teste: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(Map.of("error", "Erro ao enviar email: " + e.getMessage()));
         }
-    }
-    
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
-        return request.getRemoteAddr();
     }
 }

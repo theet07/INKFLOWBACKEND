@@ -4,11 +4,12 @@
 InkFlow é um sistema completo de agendamento de tatuagens com React + Vite (frontend) e Spring Boot (backend). O sistema permite que clientes agendem sessões com artistas, gerenciem seus perfis, troquem mensagens e acompanhem o status de seus agendamentos.
 
 ## Regras de Comportamento para IA
-1. Antes de qualquer alteração: descreva o arquivo, linha exata e o que será modificado
-2. Use apenas fsReplace com trechos exatos de código
-3. Nunca use PowerShell, scripts .ps1 ou manipulação por índice de caractere
-4. Se fsReplace falhar, oriente edição manual no VS Code
-5. Sempre teste alterações críticas antes de commitar
+1. **IMPORTANTE**: Todas as alterações devem ser atemporais para entender o contexto - evite referências a "agora", "recentemente", "acabamos de" ou qualquer indicação temporal específica
+2. Antes de qualquer alteração: descreva o arquivo, linha exata e o que será modificado
+3. Use apenas fsReplace com trechos exatos de código
+4. Nunca use PowerShell, scripts .ps1 ou manipulação por índice de caractere
+5. Se fsReplace falhar, oriente edição manual no VS Code
+6. Sempre teste alterações críticas antes de commitar
 
 ## Estrutura de Repositórios
 
@@ -89,9 +90,16 @@ git push origin teste
 - Edição de perfil (bio, especialidades, foto)
 
 ### Dashboard do Admin
-- Gerenciamento de usuários (clientes, artistas, admins)
-- Backup automático do banco via email
-- Visualização de todos os agendamentos
+- **Tabs**: Dashboard, Usuários, Artistas, Agendamentos, Segurança
+- Gerenciamento completo de usuários (clientes, artistas)
+- Edição de dados de usuários (nome, email, telefone, status)
+- Exclusão de contas com confirmação em duas etapas
+- Aprovação/rejeição de requisições de artistas
+- Criação de contas de artistas com credenciais
+- Backup manual do banco de dados (.sql)
+- Visualização e gerenciamento de todos os agendamentos
+- Estatísticas e métricas do sistema
+- Gráficos de agendamentos por mês
 
 ### Sistema de Mensagens
 - Chat cliente ↔ artista
@@ -285,6 +293,22 @@ com.backend.INKFLOW/
 
 ## Endpoints Principais
 
+### Admin
+- `GET /api/admin/stats` → Estatísticas gerais do sistema
+- `GET /api/admin/usuarios` → Lista todos os usuários (clientes + artistas)
+- `GET /api/admin/clientes` → Lista todos os clientes
+- `GET /api/admin/artistas` → Lista todos os artistas
+- `GET /api/admin/agendamentos` → Lista todos os agendamentos
+- `PUT /api/admin/clientes/{id}` → Atualiza dados do cliente
+- `PUT /api/admin/artistas/{id}` → Atualiza dados do artista
+- `DELETE /api/admin/clientes/{id}` → Exclui cliente permanentemente
+- `DELETE /api/admin/artistas/{id}` → Exclui artista permanentemente
+- `GET /api/admin/requisicoes-artista` → Lista requisições de artistas pendentes
+- `GET /api/admin/requisicoes-artista/count` → Conta requisições pendentes
+- `POST /api/admin/requisicoes-artista/{id}/aprovar` → Aprova requisição e cria conta
+- `POST /api/admin/requisicoes-artista/{id}/rejeitar` → Rejeita requisição
+- `GET /api/admin/backup` → Gera e baixa backup do banco (.sql)
+
 ### Mensagens
 - `GET /api/mensagens/nao-lidas` → `Array<Mensagem>` (requer token)
 - `PATCH /api/mensagens/marcar-todas-lidas` → void (requer token)
@@ -456,31 +480,41 @@ showToast('Mensagem de erro', true) // segundo parâmetro = isError
 
 ---
 
-## Bugs Resolvidos (Não Repetir)
+## Padrões e Boas Práticas Implementadas
 
-### 1. Circular Reference em Profile.jsx
-- **Problema**: useEffect usando variável definida depois
-- **Solução**: Definir `artistasUnicos` ANTES de usar em useEffect
+### 1. Definição de Variáveis Antes do Uso
+- Sempre definir variáveis derivadas ANTES de usá-las em useEffect
+- Evita circular references e erros de undefined
 
-### 2. Bio não persistindo após refresh
-- **Problema**: `SettingsTab` só lia de localStorage, nunca da API
-- **Solução**: useEffect para buscar dados da API ao montar + atualizar localStorage
+### 2. Sincronização de Dados
+- Sempre buscar dados da API ao montar componentes
+- Atualizar localStorage após operações bem-sucedidas
+- Manter consistência entre API e estado local
 
-### 3. prevMsgCount stale closure
-- **Problema**: `prevMsgCount` não atualizava corretamente no polling
-- **Solução**: Usar `setPrevMsgCount(prev => ...)` com callback funcional
+### 3. Callbacks Funcionais em setState
+- Usar `setState(prev => ...)` quando o novo valor depende do anterior
+- Evita stale closures em polling e timers
+- Garante que sempre trabalha com o valor mais recente
 
-### 4. Mensagens marcadas como lidas ao abrir sino
-- **Problema**: UX ruim - usuário não conseguia revisar antes de marcar
-- **Solução**: Marcar como lidas ao FECHAR sino, não ao abrir
+### 4. UX de Notificações
+- Marcar mensagens como lidas ao FECHAR sino (não ao abrir)
+- Permite que usuário revise notificações antes de marcá-las
+- Melhor experiência de usuário
 
-### 5. EmailJS removido do frontend
-- **Problema**: Dependência externa desnecessária, credenciais expostas no frontend
-- **Solução**: Implementado Spring Boot Mail no backend com endpoint `/api/contato`
+### 5. Comunicação Backend-Frontend
+- Todas as operações de email via backend (Spring Boot Mail)
+- Nunca expor credenciais no frontend
+- Centralizar lógica sensível no servidor
 
-### 6. Contact.jsx com autocomplete branco
-- **Problema**: Browser aplicava background branco em inputs com autocomplete
-- **Solução**: Adicionar `colorScheme: 'dark'` inline em todos os inputs/textareas
+### 6. Compatibilidade com Autocomplete
+- Adicionar `colorScheme: 'dark'` em inputs para prevenir background branco
+- Manter consistência visual em todos os navegadores
+- Respeitar o tema escuro do sistema
+
+### 7. Exclusão de Dados Sensíveis
+- Sempre implementar confirmação em duas etapas para exclusões
+- Mostrar alerta visual antes da confirmação final
+- Validar permissões no backend antes de executar exclusão
 
 ---
 
@@ -598,13 +632,7 @@ private String password;
 
 ## Status de Segurança
 
-### Auditoria Completa Realizada
-- ✅ **30/30 issues resolvidas** (100%)
-- ✅ 8 críticas resolvidas
-- ✅ 12 médias resolvidas
-- ✅ 10 baixas resolvidas
-
-### Principais Correções Implementadas
+### Principais Medidas de Segurança Implementadas
 1. **URLs Centralizadas**: Todas as chamadas de API centralizadas em `inkflowApi.js`
 2. **Rate Limiting**: Implementado em login, agendamento, contato, chat e leads
 3. **Validação de Ownership**: Mensagens validam relação de agendamento

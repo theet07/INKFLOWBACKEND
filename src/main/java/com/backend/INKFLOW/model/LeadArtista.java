@@ -38,6 +38,9 @@ public class LeadArtista {
     @Column(name = "aprovado_em")
     private LocalDateTime aprovadoEm;
 
+    @Column(name = "artista_id")
+    private Integer artistaId;
+
     public LeadArtista() {
         this.dataCadastro = LocalDateTime.now();
     }
@@ -126,5 +129,13 @@ public class LeadArtista {
 
     public void setAprovadoEm(LocalDateTime aprovadoEm) {
         this.aprovadoEm = aprovadoEm;
+    }
+
+    public Integer getArtistaId() {
+        return artistaId;
+    }
+
+    public void setArtistaId(Integer artistaId) {
+        this.artistaId = artistaId;
     }
 }

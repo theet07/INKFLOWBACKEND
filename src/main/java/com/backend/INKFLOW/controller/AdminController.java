@@ -143,7 +143,7 @@ public class AdminController {
 
     @GetMapping("/artistas")
     public List<ArtistaDTO> getAllArtistas() {
-        return artistaService.getAll()
+        return artistaRepository.findAll() // Retorna TODOS os artistas (ativos e inativos) para o admin
                 .stream().map(ArtistaDTO::fromEntity).toList();
     }
 
@@ -206,6 +206,7 @@ public class AdminController {
             // Atualizar requisição
             requisicao.setStatus("APROVADO");
             requisicao.setAprovadoEm(LocalDateTime.now());
+            requisicao.setArtistaId(artistaSalvo.getId());
             // TODO: pegar ID do admin logado do token JWT
             // requisicao.setAprovadoPor(adminId);
             leadArtistaRepository.save(requisicao);
@@ -364,11 +365,15 @@ public class AdminController {
                 return ResponseEntity.status(404).body(Map.of("message", "Artista não encontrado."));
             }
             
-            artistaRepository.deleteById(id.intValue());
-            return ResponseEntity.ok(Map.of("message", "Artista excluído com sucesso."));
+            // Soft delete: marcar como inativo em vez de excluir
+            Artista artista = artistaOpt.get();
+            artista.setAtivo(false);
+            artistaRepository.save(artista);
+            
+            return ResponseEntity.ok(Map.of("message", "Artista desativado com sucesso."));
             
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Erro ao excluir artista: " + e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao desativar artista: " + e.getMessage()));
         }
     }
 }

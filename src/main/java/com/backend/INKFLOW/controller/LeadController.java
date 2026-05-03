@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -128,13 +129,16 @@ class EmailAsyncService {
     @Autowired
     private JavaMailSender mailSender;
     
+    @Value("${spring.mail.username}")
+    private String remetente;
+    
     @Async
     public void enviarEmailsLead(LeadArtistaRequest request, String emailTrimmed, String whatsappLimpo) {
         // Enviar email de confirmação para o artista
         try {
             log.info("Tentando enviar email para artista: {}", emailTrimmed);
             SimpleMailMessage mailArtista = new SimpleMailMessage();
-            mailArtista.setFrom("inkflowstudios07@gmail.com");
+            mailArtista.setFrom(remetente);
             mailArtista.setTo(emailTrimmed);
             mailArtista.setSubject("Recebemos sua solicitação - InkFlow 🎨");
             mailArtista.setText(
@@ -159,6 +163,7 @@ class EmailAsyncService {
         try {
             log.info("Tentando enviar notificação para equipe InkFlow");
             SimpleMailMessage mailEquipe = new SimpleMailMessage();
+            mailEquipe.setFrom(remetente);
             mailEquipe.setTo("inkflowstudios07@gmail.com");
             mailEquipe.setSubject("🔥 Novo Lead de Artista - " + request.getNomeEstudio());
             mailEquipe.setText(
@@ -183,7 +188,7 @@ class EmailAsyncService {
         try {
             log.info("Testando envio de email para: {}", emailDestino);
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("inkflowstudios07@gmail.com");
+            message.setFrom(remetente);
             message.setTo(emailDestino);
             message.setSubject("Teste de Email - InkFlow");
             message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");

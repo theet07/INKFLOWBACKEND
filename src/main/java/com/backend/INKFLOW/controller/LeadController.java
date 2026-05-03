@@ -86,6 +86,9 @@ public class LeadController {
             lead.setEspecialidade(request.getEspecialidade().trim());
             leadRepository.save(lead);
 
+            boolean emailArtistaEnviado = false;
+            boolean emailEquipeEnviado = false;
+
             // Enviar email de confirmação para o artista
             try {
                 log.info("Tentando enviar email para artista: {}", emailTrimmed);
@@ -106,9 +109,9 @@ public class LeadController {
                     "Equipe InkFlow"
                 );
                 mailSender.send(mailArtista);
+                emailArtistaEnviado = true;
                 log.info("Email enviado com sucesso para artista: {}", emailTrimmed);
             } catch (Exception e) {
-                // Log mas não falha a requisição
                 log.error("Erro ao enviar email para artista: {}", e.getMessage(), e);
             }
 
@@ -129,20 +132,45 @@ public class LeadController {
                     "Ação: Entrar em contato para liberar acesso beta."
                 );
                 mailSender.send(mailEquipe);
+                emailEquipeEnviado = true;
                 log.info("Notificação enviada com sucesso para equipe InkFlow");
             } catch (Exception e) {
-                // Log mas não falha a requisição
                 log.error("Erro ao enviar email para equipe: {}", e.getMessage(), e);
             }
 
             return ResponseEntity.ok(Map.of(
                 "message", "Cadastro realizado com sucesso! Entraremos em contato via WhatsApp.",
-                "leadId", lead.getId()
+                "leadId", lead.getId(),
+                "emailArtistaEnviado", emailArtistaEnviado,
+                "emailEquipeEnviado", emailEquipeEnviado
             ));
 
         } catch (Exception e) {
             log.error("Erro ao processar cadastro de lead: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "Erro ao processar cadastro."));
+        }
+    }
+    
+    @PostMapping("/test-email")
+    public ResponseEntity<?> testEmail(@RequestBody Map<String, String> request) {
+        String emailDestino = request.get("email");
+        if (emailDestino == null || emailDestino.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email é obrigatório"));
+        }
+        
+        try {
+            log.info("Testando envio de email para: {}", emailDestino);
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("inkflowstudios07@gmail.com");
+            message.setTo(emailDestino);
+            message.setSubject("Teste de Email - InkFlow");
+            message.setText("Este é um email de teste do sistema InkFlow.\n\nSe você recebeu esta mensagem, o sistema de email está funcionando corretamente!");
+            mailSender.send(message);
+            log.info("Email de teste enviado com sucesso para: {}", emailDestino);
+            return ResponseEntity.ok(Map.of("message", "Email enviado com sucesso!", "destinatario", emailDestino));
+        } catch (Exception e) {
+            log.error("Erro ao enviar email de teste: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of("error", "Erro ao enviar email: " + e.getMessage()));
         }
     }
     

@@ -237,6 +237,18 @@ public class BackupService {
             + "'";
     }
 
+    @Scheduled(cron = "0 56 2 * * *")
+    public void warmupBancoDados() {
+        log.info(">>> WARMUP DO BANCO INICIADO (4 min antes do backup) <<<");
+        try {
+            // Faz uma query simples para acordar o banco
+            long count = clienteRepository.count();
+            log.info("Banco acordado com sucesso. Total de clientes: {}", count);
+        } catch (Exception e) {
+            log.warn("Falha no warmup do banco: {}", e.getMessage());
+        }
+    }
+
     @Scheduled(cron = "0 0 3 * * *")
     public void backupAutomatico() {
         log.info(">>> GATILHO DE BACKUP ACIONADO <<<");

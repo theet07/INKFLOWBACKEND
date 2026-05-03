@@ -26,11 +26,17 @@ public class LeadArtista {
     @Column(nullable = false)
     private String especialidade;
 
-    @Column(nullable = false)
+    @Column(name = "data_cadastro", nullable = false)
     private LocalDateTime dataCadastro;
 
     @Column(nullable = false)
-    private String status = "PENDENTE"; // PENDENTE, CONTATADO, CONVERTIDO
+    private String status = "PENDENTE"; // PENDENTE, APROVADO, REJEITADO
+
+    @Column(name = "aprovado_por")
+    private Long aprovadoPor;
+
+    @Column(name = "aprovado_em")
+    private LocalDateTime aprovadoEm;
 
     public LeadArtista() {
         this.dataCadastro = LocalDateTime.now();
@@ -93,11 +99,32 @@ public class LeadArtista {
         this.dataCadastro = dataCadastro;
     }
 
+    // Alias para compatibilidade com frontend
+    public LocalDateTime getCreatedAt() {
+        return dataCadastro;
+    }
+
     public String getStatus() {
         return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getAprovadoPor() {
+        return aprovadoPor;
+    }
+
+    public void setAprovadoPor(Long aprovadoPor) {
+        this.aprovadoPor = aprovadoPor;
+    }
+
+    public LocalDateTime getAprovadoEm() {
+        return aprovadoEm;
+    }
+
+    public void setAprovadoEm(LocalDateTime aprovadoEm) {
+        this.aprovadoEm = aprovadoEm;
     }
 }

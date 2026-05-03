@@ -1,7 +1,10 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.dto.AdminCreateRequest;
+import com.backend.INKFLOW.dto.AprovarArtistaRequest;
 import com.backend.INKFLOW.model.*;
+import com.backend.INKFLOW.repository.ArtistaRepository;
+import com.backend.INKFLOW.repository.LeadArtistaRepository;
 import com.backend.INKFLOW.service.AdminService;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ArtistaService;
@@ -9,6 +12,7 @@ import com.backend.INKFLOW.service.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +27,9 @@ public class AdminController {
     @Autowired private AgendamentoService agendamentoService;
     @Autowired private ArtistaService artistaService;
     @Autowired private ClienteService clienteService;
+    @Autowired private LeadArtistaRepository leadArtistaRepository;
+    @Autowired private ArtistaRepository artistaRepository;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     // ── Stats ────────────────────────────────────────────────────
     @GetMapping("/stats")
@@ -144,6 +151,107 @@ public class AdminController {
     public List<ClienteDTO> getAllClientes() {
         return clienteService.getAllClientes()
                 .stream().map(ClienteDTO::fromEntity).toList();
+    }
+
+    // ── Requisições de Artistas ──────────────────────────────────
+    @GetMapping("/requisicoes-artista")
+    public ResponseEntity<?> getAllRequisicoesArtista() {
+        List<LeadArtista> requisicoes = leadArtistaRepository.findAll();
+        return ResponseEntity.ok(requisicoes);
+    }
+
+    @GetMapping("/requisicoes-artista/pendentes/count")
+    public ResponseEntity<?> getCountPendentes() {
+        long count = leadArtistaRepository.findAll().stream()
+                .filter(r -> "PENDENTE".equals(r.getStatus()))
+                .count();
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    @PostMapping("/requisicoes-artista/{id}/aprovar")
+    public ResponseEntity<?> aprovarRequisicao(
+            @PathVariable Long id,
+            @Valid @RequestBody AprovarArtistaRequest request) {
+        
+        // Buscar requisição
+        Optional<LeadArtista> requisicaoOpt = leadArtistaRepository.findById(id);
+        if (requisicaoOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("message", "Requisição não encontrada."));
+        }
+        
+        LeadArtista requisicao = requisicaoOpt.get();
+        
+        // Validar se já foi aprovada
+        if ("APROVADO".equals(requisicao.getStatus())) {
+            return ResponseEntity.status(400).body(Map.of("message", "Requisição já foi aprovada."));
+        }
+        
+        // Validar se email já existe
+        if (artistaRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado. Use outro email."));
+        }
+        
+        try {
+            // Criar artista
+            Artista novoArtista = new Artista();
+            novoArtista.setNome(requisicao.getNomeCompleto());
+            novoArtista.setRole(requisicao.getNomeEstudio());
+            novoArtista.setEspecialidades(requisicao.getEspecialidade());
+            novoArtista.setEmail(request.getEmail());
+            novoArtista.setPassword(passwordEncoder.encode(request.getSenha())); // Senha criptografada com BCrypt
+            novoArtista.setAtivo(true);
+            
+            Artista artistaSalvo = artistaRepository.save(novoArtista);
+            
+            // Atualizar requisição
+            requisicao.setStatus("APROVADO");
+            requisicao.setAprovadoEm(LocalDateTime.now());
+            // TODO: pegar ID do admin logado do token JWT
+            // requisicao.setAprovadoPor(adminId);
+            leadArtistaRepository.save(requisicao);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Artista aprovado e conta criada com sucesso.",
+                "artistaId", artistaSalvo.getId()
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao criar artista: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/requisicoes-artista/{id}/rejeitar")
+    public ResponseEntity<?> rejeitarRequisicao(@PathVariable Long id) {
+        
+        // Buscar requisição
+        Optional<LeadArtista> requisicaoOpt = leadArtistaRepository.findById(id);
+        if (requisicaoOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("message", "Requisição não encontrada."));
+        }
+        
+        LeadArtista requisicao = requisicaoOpt.get();
+        
+        // Validar se já foi processada
+        if ("APROVADO".equals(requisicao.getStatus())) {
+            return ResponseEntity.status(400).body(Map.of("message", "Requisição já foi aprovada. Não pode ser rejeitada."));
+        }
+        
+        if ("REJEITADO".equals(requisicao.getStatus())) {
+            return ResponseEntity.status(400).body(Map.of("message", "Requisição já foi rejeitada."));
+        }
+        
+        try {
+            // Atualizar status para REJEITADO
+            requisicao.setStatus("REJEITADO");
+            leadArtistaRepository.save(requisicao);
+            
+            return ResponseEntity.ok(Map.of(
+                "message", "Requisição rejeitada com sucesso."
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao rejeitar requisição: " + e.getMessage()));
+        }
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -255,6 +255,22 @@ public class AdminController {
         }
     }
 
+    @DeleteMapping("/requisicoes-artista/{id}")
+    public ResponseEntity<?> deleteRequisicao(@PathVariable Long id) {
+        try {
+            Optional<LeadArtista> requisicaoOpt = leadArtistaRepository.findById(id);
+            if (requisicaoOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("message", "Requisição não encontrada."));
+            }
+            
+            leadArtistaRepository.deleteById(id);
+            return ResponseEntity.ok(Map.of("message", "Requisição excluída com sucesso."));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("message", "Erro ao excluir requisição: " + e.getMessage()));
+        }
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();

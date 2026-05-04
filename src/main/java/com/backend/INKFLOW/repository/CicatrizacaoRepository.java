@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CicatrizacaoRepository extends JpaRepository<Cicatrizacao, Long> {
 
-    @Query("SELECT c FROM Cicatrizacao c WHERE c.agendamento.cliente.id = :clienteId AND c.status = 'ATIVA'")
+    @Query("SELECT c FROM Cicatrizacao c WHERE c.agendamento.cliente.id = :clienteId AND c.status = 'ATIVA' ORDER BY c.dataInicio DESC LIMIT 1")
     Optional<Cicatrizacao> findAtivaByClienteId(@Param("clienteId") Long clienteId);
 
     Optional<Cicatrizacao> findByAgendamentoId(Long agendamentoId);

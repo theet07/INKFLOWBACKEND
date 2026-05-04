@@ -48,7 +48,9 @@ public class SecurityConfig {
             "https://inkflowfrontend.vercel.app",
             "https://inkflow-*.vercel.app",
             "http://localhost:*",
-            "https://*.app.github.dev"
+            "https://*.app.github.dev",
+            "exp://*",
+            "http://192.168.*"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
@@ -112,6 +114,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/artists/{id}").hasRole("ARTISTA")
                 .requestMatchers(HttpMethod.POST, "/api/artistas/{id}/foto").hasRole("ARTISTA")
                 .requestMatchers(HttpMethod.POST, "/api/artists/{id}/foto").hasRole("ARTISTA")
+
+                // Cicatrização — autenticado
+                .requestMatchers("/api/cicatrizacao/**").authenticated()
 
                 // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()

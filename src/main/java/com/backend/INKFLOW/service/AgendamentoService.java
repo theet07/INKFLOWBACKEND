@@ -2,6 +2,7 @@ package com.backend.INKFLOW.service;
 
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.service.CicatrizacaoService;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ public class AgendamentoService {
     @Autowired private ClienteService clienteService;
     @Autowired private ArtistaService artistaService;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private CicatrizacaoService cicatrizacaoService;
 
     @Value("${landing.default.client.password}")
     private String defaultClientPassword;
@@ -222,7 +224,15 @@ public class AgendamentoService {
             ag.setStatus(status);
             if (avaliacao != null) ag.setAvaliacao(avaliacao);
             if (observacoes != null) ag.setObservacoes(observacoes);
-            return agendamentoRepository.save(ag);
+            Agendamento salvo = agendamentoRepository.save(ag);
+            if ("REALIZADO".equals(status)) {
+                try {
+                    cicatrizacaoService.iniciar(salvo.getId());
+                } catch (Exception e) {
+                    log.warn("[Cicatrizacao] Nao foi possivel iniciar para agendamentoId={}: {}", salvo.getId(), e.getMessage());
+                }
+            }
+            return salvo;
         });
     }
 

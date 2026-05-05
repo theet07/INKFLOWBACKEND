@@ -1,5 +1,6 @@
 package com.backend.INKFLOW.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -16,6 +17,7 @@ public class Cliente {
     @Column(unique = true, nullable = false)
     private String email;
     
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
     
@@ -23,15 +25,18 @@ public class Cliente {
     private String telefone;
     private String profileImage;
     
+    @JsonIgnore
     @Column(name = "codigo_verificacao", length = 6)
     private String codigoVerificacao;
 
     @Column(name = "conta_verificada", nullable = false)
     private Boolean contaVerificada = false;
 
+    @JsonIgnore
     @Column(name = "tentativas_otp", nullable = false)
     private Integer tentativasOtp = 0;
 
+    @JsonIgnore
     @Column(name = "otp_created_at")
     private LocalDateTime otpCreatedAt;
 

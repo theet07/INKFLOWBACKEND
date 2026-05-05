@@ -118,6 +118,14 @@ public class SecurityConfig {
                 // Cicatrização — autenticado
                 .requestMatchers("/api/cicatrizacao/**").authenticated()
 
+                // Novos endpoints mobile — autenticado
+                .requestMatchers("/api/badges/**").authenticated()
+                .requestMatchers("/api/estatisticas/**").authenticated()
+                .requestMatchers("/api/dicas/**").authenticated()
+                .requestMatchers("/api/fotos/**").authenticated()
+                .requestMatchers("/api/quiz/**").authenticated()
+                .requestMatchers("/api/notificacoes/**").authenticated()
+
                 // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/cliente/**").authenticated()

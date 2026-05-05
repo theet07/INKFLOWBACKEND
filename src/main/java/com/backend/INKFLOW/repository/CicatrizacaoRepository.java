@@ -12,4 +12,6 @@ public interface CicatrizacaoRepository extends JpaRepository<Cicatrizacao, Long
     Optional<Cicatrizacao> findAtivaByClienteId(@Param("clienteId") Long clienteId);
 
     Optional<Cicatrizacao> findByAgendamentoId(Long agendamentoId);
+
+    Optional<Cicatrizacao> findFirstByAgendamentoClienteIdAndStatus(Long clienteId, String status);
 }

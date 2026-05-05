@@ -1,4 +1,4 @@
-﻿package com.backend.INKFLOW.model;
+package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
 

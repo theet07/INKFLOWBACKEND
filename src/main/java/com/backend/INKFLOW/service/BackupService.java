@@ -254,11 +254,7 @@ public class BackupService {
         log.info(">>> GATILHO DE BACKUP ACIONADO <<<");
         try {
             String conteudo = gerarSql();
-            String filename = "inkflow_backup_"
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                    + ".sql";
             log.info("Backup gerado: {} linhas de SQL", conteudo.split("\n").length);
-            emailService.enviarBackupEmail(conteudo, filename);
         } catch (Exception e) {
             log.error("Falha no backup automatico: {}", e.getMessage(), e);
         }

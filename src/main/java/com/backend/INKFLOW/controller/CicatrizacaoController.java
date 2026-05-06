@@ -59,4 +59,20 @@ public class CicatrizacaoController {
         }
         return ResponseEntity.ok(cicatrizacaoService.iniciar(agendamentoId));
     }
+
+    /** Cria cicatrização externa (tela nova-tatuagem do app) */
+    @PostMapping("/criar")
+    public ResponseEntity<?> criar(@RequestBody Map<String, Object> body, Authentication auth) {
+        Long clienteId = Long.parseLong(body.get("clienteId").toString());
+        String regiao = (String) body.get("regiao");
+        Double largura = body.get("largura") != null ? ((Number) body.get("largura")).doubleValue() : null;
+        Double altura = body.get("altura") != null ? ((Number) body.get("altura")).doubleValue() : null;
+        return ResponseEntity.ok(cicatrizacaoService.criar(clienteId, regiao, largura, altura));
+    }
+
+    /** Histórico de todas as cicatrizações do usuário */
+    @GetMapping("/usuario/{clienteId}/historico")
+    public ResponseEntity<List<Cicatrizacao>> buscarHistorico(@PathVariable Long clienteId) {
+        return ResponseEntity.ok(cicatrizacaoService.buscarHistorico(clienteId));
+    }
 }

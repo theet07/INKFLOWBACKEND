@@ -29,7 +29,7 @@ public class BadgeController {
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<Map<String, Object>>> getBadgesUsuario(@PathVariable Long usuarioId) {
         List<Badge> todasBadges = badgeRepository.findAllByOrderByCategoriaAscIdAsc();
-        List<BadgeUsuario> badgesUsuario = badgeUsuarioRepository.findByClienteId(usuarioId);
+        List<BadgeUsuario> badgesUsuario = badgeUsuarioRepository.findByClienteIdWithBadge(usuarioId);
 
         Map<Long, BadgeUsuario> mapBU = badgesUsuario.stream()
                 .collect(Collectors.toMap(bu -> bu.getBadge().getId(), bu -> bu));

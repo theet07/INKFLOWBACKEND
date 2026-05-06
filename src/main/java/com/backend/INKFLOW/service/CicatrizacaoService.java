@@ -65,11 +65,56 @@ public class CicatrizacaoService {
     }
 
     // -------------------------------------------------------------------------
+    // Criar cicatrização externa (tela nova-tatuagem)
+    // -------------------------------------------------------------------------
+
+    @Transactional
+    public Cicatrizacao criar(Long clienteId, String regiao, Double largura, Double altura) {
+        Cliente cliente = new Cliente();
+        cliente.setId(clienteId);
+
+        Agendamento agendamento = new Agendamento();
+        agendamento.setCliente(cliente);
+        agendamento.setRegiao(regiao);
+        agendamento.setLargura(largura);
+        agendamento.setAltura(altura);
+        agendamento.setServico("Tatuagem Externa");
+        agendamento.setStatus("CONFIRMADO");
+        agendamento.setDataHora(java.time.LocalDateTime.now());
+        agendamentoRepository.save(agendamento);
+
+        int periodo = calcularPeriodo(regiao, largura, altura);
+        LocalDate hoje = LocalDate.now();
+
+        Cicatrizacao cic = new Cicatrizacao();
+        cic.setAgendamento(agendamento);
+        cic.setDataInicio(hoje);
+        cic.setDataFim(hoje.plusDays(periodo - 1));
+        cic.setPeriodoTotalDias(periodo);
+        cic.setStatus("ATIVA");
+        cic.setDiaAtual(1);
+        cic.setFaseAtual("FASE_1_PRIMEIRAS_24H");
+        cicatrizacaoRepository.save(cic);
+
+        gerarCheckpoints(cic, periodo, hoje);
+
+        log.info("[Cicatrizacao] Criada externamente para clienteId={} regiao={} periodo={}dias", clienteId, regiao, periodo);
+        return cic;
+    }
+
+    // -------------------------------------------------------------------------
+    // Histórico de cicatrizações do usuário
+    // -------------------------------------------------------------------------
+
+    public List<Cicatrizacao> buscarHistorico(Long clienteId) {
+        return cicatrizacaoRepository.findAllByClienteIdOrderByDataInicioDesc(clienteId);
+    }
+
+    // -------------------------------------------------------------------------
     // Buscar caminho completo
     // -------------------------------------------------------------------------
 
     public List<CheckpointDia> buscarCaminho(Long cicatrizacaoId) {
-        atualizarStatusDias(cicatrizacaoId);
         return checkpointDiaRepository.findByCicatrizacaoIdOrderByNumeroDiaAsc(cicatrizacaoId);
     }
 
@@ -90,7 +135,7 @@ public class CicatrizacaoService {
 
     @Transactional
     public CheckpointDia toggleItem(Long cicatrizacaoId, Long itemId) {
-        ChecklistItem item = checklistItemRepository.findById(itemId)
+        ChecklistItem item = checklistItemRepository.findByIdWithCheckpointAndCicatrizacao(itemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item nao encontrado."));
 
         CheckpointDia checkpoint = item.getCheckpointDia();
@@ -164,16 +209,27 @@ public class CicatrizacaoService {
         List<String[]> itensTarde = getItensTarde(fase);
         List<String[]> itensNoite = getItensNoite(fase);
 
+        List<ChecklistItem> todosItens = new java.util.ArrayList<>();
         int ordem = 1;
         for (String[] item : itensManha) {
-            salvarItem(cp, "MANHA", ordem++, item[0]);
+            todosItens.add(criarItem(cp, "MANHA", ordem++, item[0]));
         }
         for (String[] item : itensTarde) {
-            salvarItem(cp, "TARDE", ordem++, item[0]);
+            todosItens.add(criarItem(cp, "TARDE", ordem++, item[0]));
         }
         for (String[] item : itensNoite) {
-            salvarItem(cp, "NOITE", ordem++, item[0]);
+            todosItens.add(criarItem(cp, "NOITE", ordem++, item[0]));
         }
+        checklistItemRepository.saveAll(todosItens);
+    }
+
+    private ChecklistItem criarItem(CheckpointDia cp, String periodo, int ordem, String descricao) {
+        ChecklistItem item = new ChecklistItem();
+        item.setCheckpointDia(cp);
+        item.setPeriodo(periodo);
+        item.setOrdem(ordem);
+        item.setDescricao(descricao);
+        return item;
     }
 
     private void salvarItem(CheckpointDia cp, String periodo, int ordem, String descricao) {
@@ -227,7 +283,7 @@ public class CicatrizacaoService {
     // Lógica interna — atualizar status dos dias (DISPONIVEL/PERDIDO)
     // -------------------------------------------------------------------------
 
-    private void atualizarStatusDias(Long cicatrizacaoId) {
+    public void atualizarStatusDias(Long cicatrizacaoId) {
         LocalDate hoje = LocalDate.now();
         List<CheckpointDia> checkpoints = checkpointDiaRepository
                 .findByCicatrizacaoIdOrderByNumeroDiaAsc(cicatrizacaoId);

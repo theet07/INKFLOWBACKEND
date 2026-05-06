@@ -5,6 +5,7 @@ import com.backend.INKFLOW.model.QuizPergunta;
 import com.backend.INKFLOW.repository.QuizOpcaoRepository;
 import com.backend.INKFLOW.repository.QuizPerguntaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class QuizController {
     @Autowired
     private QuizOpcaoRepository opcaoRepository;
 
-    /** GET /api/quiz/dia/{diaNumero} */
+    @Cacheable(value = "quiz", key = "#diaNumero")
     @GetMapping("/dia/{diaNumero}")
     public ResponseEntity<List<Map<String, Object>>> getQuiz(@PathVariable Integer diaNumero) {
         List<QuizPergunta> perguntas = perguntaRepository.findByCheckpointDiaNumero(diaNumero);

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @org.springframework.scheduling.annotation.EnableScheduling
 @org.springframework.scheduling.annotation.EnableAsync
+@org.springframework.cache.annotation.EnableCaching
 public class InkflowApplication {
 
 	private static final Logger log = LoggerFactory.getLogger(InkflowApplication.class);

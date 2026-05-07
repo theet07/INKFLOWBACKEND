@@ -23,6 +23,7 @@ public class CicatrizacaoService {
     @Autowired private CheckpointDiaRepository checkpointDiaRepository;
     @Autowired private ChecklistItemRepository checklistItemRepository;
     @Autowired private AgendamentoRepository agendamentoRepository;
+    @Autowired private ClienteRepository clienteRepository;
 
     // -------------------------------------------------------------------------
     // Iniciar cicatrização
@@ -70,8 +71,8 @@ public class CicatrizacaoService {
 
     @Transactional
     public Cicatrizacao criar(Long clienteId, String regiao, Double largura, Double altura) {
-        Cliente cliente = new Cliente();
-        cliente.setId(clienteId);
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente nao encontrado."));
 
         Agendamento agendamento = new Agendamento();
         agendamento.setCliente(cliente);

@@ -2,6 +2,7 @@ package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "cicatrizacoes")
@@ -13,6 +14,7 @@ public class Cicatrizacao {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agendamento_id", nullable = false, unique = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agendamento agendamento;
 
     @Column(name = "data_inicio", nullable = false)

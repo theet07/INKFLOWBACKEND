@@ -47,6 +47,29 @@ public class EmailService {
         }
     }
 
+    public void enviarCodigoRecuperacaoSenha(String destinatario, String codigo, String nomeCliente) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(remetente);
+            message.setTo(destinatario);
+            message.setSubject("InkFlow — Recuperação de Senha");
+            message.setText(
+                "Olá" + (nomeCliente != null ? ", " + nomeCliente : "") + "!\n\n" +
+                "Recebemos uma solicitação para redefinir sua senha no InkFlow.\n\n" +
+                "Seu código de recuperação é:\n\n" +
+                "  " + codigo + "\n\n" +
+                "Este código expira em 15 minutos.\n" +
+                "Se você não solicitou esta recuperação, ignore este e-mail e sua senha permanecerá inalterada.\n\n" +
+                "— Equipe InkFlow"
+            );
+            mailSender.send(message);
+            log.info("Codigo de recuperacao de senha enviado para: {}", destinatario);
+        } catch (Exception e) {
+            log.error("Falha ao enviar e-mail de recuperacao para {}: {}", destinatario, e.getMessage());
+            throw new RuntimeException("Falha ao enviar e-mail de recuperacao. Tente novamente.");
+        }
+    }
+
     public void enviarEmailConfirmacaoLead(String destinatario, String nomeCompleto, String nomeEstudio, String especialidade, String whatsapp) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

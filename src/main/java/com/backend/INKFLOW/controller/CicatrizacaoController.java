@@ -67,7 +67,8 @@ public class CicatrizacaoController {
         String regiao = (String) body.get("regiao");
         Double largura = body.get("largura") != null ? ((Number) body.get("largura")).doubleValue() : null;
         Double altura = body.get("altura") != null ? ((Number) body.get("altura")).doubleValue() : null;
-        return ResponseEntity.ok(cicatrizacaoService.criar(clienteId, regiao, largura, altura));
+        cicatrizacaoService.criar(clienteId, regiao, largura, altura);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Acompanhamento criado com sucesso."));
     }
 
     /** Histórico de todas as cicatrizações do usuário */

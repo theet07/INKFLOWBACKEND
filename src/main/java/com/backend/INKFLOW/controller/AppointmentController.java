@@ -1,6 +1,6 @@
 package com.backend.INKFLOW.controller;
 
-import com.backend.INKFLOW.model.AgendamentoDashboard;
+import com.backend.INKFLOW.dto.AgendamentoDashboard;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ClienteService;
 import org.slf4j.Logger;

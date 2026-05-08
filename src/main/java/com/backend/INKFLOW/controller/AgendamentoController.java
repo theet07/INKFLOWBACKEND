@@ -2,7 +2,7 @@ package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.dto.AgendamentoUpdateRequest;
 import com.backend.INKFLOW.model.Agendamento;
-import com.backend.INKFLOW.model.AgendamentoDashboard;
+import com.backend.INKFLOW.dto.AgendamentoDashboard;
 import com.backend.INKFLOW.service.AgendamentoService;
 import com.backend.INKFLOW.service.ArtistaService;
 import org.springframework.beans.factory.annotation.Autowired;

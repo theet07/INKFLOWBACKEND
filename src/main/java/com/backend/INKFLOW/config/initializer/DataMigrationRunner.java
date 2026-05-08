@@ -1,4 +1,4 @@
-package com.backend.INKFLOW.config;
+package com.backend.INKFLOW.config.initializer;
 
 import com.backend.INKFLOW.model.Cliente;
 import com.backend.INKFLOW.repository.ClienteRepository;

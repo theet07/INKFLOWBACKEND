@@ -1,4 +1,6 @@
-package com.backend.INKFLOW.model;
+package com.backend.INKFLOW.dto;
+
+import com.backend.INKFLOW.model.*;
 
 import java.time.LocalDateTime;
 

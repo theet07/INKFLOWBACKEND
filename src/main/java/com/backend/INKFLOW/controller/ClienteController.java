@@ -2,8 +2,8 @@ package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.dto.ClienteCreateRequest;
 import com.backend.INKFLOW.model.Cliente;
-import com.backend.INKFLOW.model.ClienteDTO;
-import com.backend.INKFLOW.model.VerificacaoDTO;
+import com.backend.INKFLOW.dto.ClienteDTO;
+import com.backend.INKFLOW.dto.VerificacaoDTO;
 import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.EmailService;

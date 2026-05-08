@@ -3,6 +3,7 @@ package com.backend.INKFLOW.controller;
 import com.backend.INKFLOW.dto.AdminCreateRequest;
 import com.backend.INKFLOW.dto.AprovarArtistaRequest;
 import com.backend.INKFLOW.model.*;
+import com.backend.INKFLOW.dto.*;
 import com.backend.INKFLOW.repository.ArtistaRepository;
 import com.backend.INKFLOW.repository.LeadArtistaRepository;
 import com.backend.INKFLOW.service.AdminService;

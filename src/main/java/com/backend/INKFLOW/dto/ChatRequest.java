@@ -1,5 +1,7 @@
 package com.backend.INKFLOW.dto;
 
+import com.backend.INKFLOW.model.*;
+
 import java.util.List;
 
 public class ChatRequest {

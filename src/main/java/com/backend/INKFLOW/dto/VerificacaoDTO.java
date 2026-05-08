@@ -1,4 +1,6 @@
-package com.backend.INKFLOW.model;
+package com.backend.INKFLOW.dto;
+
+import com.backend.INKFLOW.model.*;
 
 public record VerificacaoDTO(String email, String codigo) {
     public String getEmail() { return email; }

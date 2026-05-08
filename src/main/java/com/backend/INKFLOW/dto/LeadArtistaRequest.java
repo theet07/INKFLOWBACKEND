@@ -1,5 +1,7 @@
 package com.backend.INKFLOW.dto;
 
+import com.backend.INKFLOW.model.*;
+
 public class LeadArtistaRequest {
     private String nomeCompleto;
     private String nomeEstudio;

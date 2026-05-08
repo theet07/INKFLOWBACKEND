@@ -2,6 +2,7 @@ package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "checklist_itens")
@@ -13,6 +14,7 @@ public class ChecklistItem {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "checkpoint_dia_id", nullable = false)
+    @JsonIgnore
     private CheckpointDia checkpointDia;
 
     @Column(nullable = false)

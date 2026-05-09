@@ -144,7 +144,7 @@ public class EmailService {
         
         Map<String, String> sender = new HashMap<>();
         sender.put("email", remetente.trim());
-        sender.put("name", "InkFlow App");
+        sender.put("name", "Equipe InkFlow");
         body.put("sender", sender);
         
         Map<String, String> to = new HashMap<>();

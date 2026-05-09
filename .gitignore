@@ -38,6 +38,7 @@ run.ps1
 *.env
 CLAUDE.md
 claude.md
+test-api.ps1
 
 ### Segredos e credenciais ###
 *.key

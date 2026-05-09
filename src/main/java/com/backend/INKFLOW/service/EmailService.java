@@ -13,6 +13,13 @@ import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class EmailService {
@@ -25,8 +32,17 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String remetente;
 
+    @Value("${resend.api.key:}")
+    private String resendApiKey;
+
     public void enviarCodigoVerificacao(String destinatario, String codigo) {
         try {
+            if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
+                enviarViaResend(destinatario, "InkFlow — Seu código de verificação", "Seu código é: " + codigo);
+                log.info("Codigo de verificacao enviado via Resend API para: {}", destinatario);
+                return;
+            }
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(remetente);
             message.setTo(destinatario);
@@ -40,7 +56,7 @@ public class EmailService {
                 "— Equipe InkFlow"
             );
             mailSender.send(message);
-            log.info("Codigo de verificacao enviado para: {}", destinatario);
+            log.info("Codigo de verificacao enviado via SMTP para: {}", destinatario);
         } catch (Exception e) {
             log.error("Falha ao enviar e-mail para {}: {}", destinatario, e.getMessage());
             throw new RuntimeException("Falha ao enviar e-mail de verificacao. Tente novamente.");
@@ -49,6 +65,12 @@ public class EmailService {
 
     public void enviarCodigoRecuperacaoSenha(String destinatario, String codigo, String nomeCliente) {
         try {
+            if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
+                enviarViaResend(destinatario, "InkFlow — Recuperação de Senha", "Seu código de recuperação é: " + codigo);
+                log.info("Codigo de recuperacao de senha enviado via Resend API para: {}", destinatario);
+                return;
+            }
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(remetente);
             message.setTo(destinatario);
@@ -109,6 +131,28 @@ public class EmailService {
             log.info("Backup enviado por email: {}", filename);
         } catch (Exception e) {
             log.error("Falha ao enviar backup por email: {}", e.getMessage(), e);
+        }
+    }
+
+    private void enviarViaResend(String destinatario, String assunto, String texto) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(resendApiKey);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("from", "onboarding@resend.dev");
+        body.put("to", Collections.singletonList(destinatario));
+        body.put("subject", assunto);
+        body.put("html", "<p>" + texto.replace("\n", "<br>") + "</p>");
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        
+        try {
+            restTemplate.postForObject("https://api.resend.com/emails", request, String.class);
+        } catch (Exception e) {
+            log.error("Erro na API do Resend: {}", e.getMessage());
+            throw new RuntimeException("Falha ao enviar e-mail via Resend.");
         }
     }
 }

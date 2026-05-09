@@ -38,7 +38,7 @@ public class EmailService {
     public void enviarCodigoVerificacao(String destinatario, String codigo) {
         try {
             if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
-                enviarViaResend(destinatario, "InkFlow — Seu código de verificação", "Seu código é: " + codigo);
+                enviarViaBrevo(destinatario, "InkFlow — Seu código de verificação", "Seu código é: " + codigo);
                 log.info("Codigo de verificacao enviado via Resend API para: {}", destinatario);
                 return;
             }
@@ -66,7 +66,7 @@ public class EmailService {
     public void enviarCodigoRecuperacaoSenha(String destinatario, String codigo, String nomeCliente) {
         try {
             if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
-                enviarViaResend(destinatario, "InkFlow — Recuperação de Senha", "Seu código de recuperação é: " + codigo);
+                enviarViaBrevo(destinatario, "InkFlow — Recuperação de Senha", "Seu código de recuperação é: " + codigo);
                 log.info("Codigo de recuperacao de senha enviado via Resend API para: {}", destinatario);
                 return;
             }
@@ -134,25 +134,33 @@ public class EmailService {
         }
     }
 
-    private void enviarViaResend(String destinatario, String assunto, String texto) {
+    private void enviarViaBrevo(String destinatario, String assunto, String texto) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(resendApiKey);
+        headers.set("api-key", resendApiKey); // Usando a mesma variável pra você não precisar recriar no Render, apenas substitua o valor
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> body = new HashMap<>();
-        body.put("from", "onboarding@resend.dev");
-        body.put("to", Collections.singletonList(destinatario));
+        
+        Map<String, String> sender = new HashMap<>();
+        sender.put("email", remetente); // O e-mail que você cadastrou no Gmail
+        sender.put("name", "InkFlow App");
+        body.put("sender", sender);
+        
+        Map<String, String> to = new HashMap<>();
+        to.put("email", destinatario);
+        body.put("to", Collections.singletonList(to));
+        
         body.put("subject", assunto);
-        body.put("html", "<p>" + texto.replace("\n", "<br>") + "</p>");
+        body.put("htmlContent", "<p>" + texto.replace("\n", "<br>") + "</p>");
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
         
         try {
-            restTemplate.postForObject("https://api.resend.com/emails", request, String.class);
+            restTemplate.postForObject("https://api.brevo.com/v3/smtp/email", request, String.class);
         } catch (Exception e) {
-            log.error("Erro na API do Resend: {}", e.getMessage());
-            throw new RuntimeException("Falha ao enviar e-mail via Resend.");
+            log.error("Erro na API do Brevo: {}", e.getMessage());
+            throw new RuntimeException("Falha ao enviar e-mail via Brevo.");
         }
     }
 }

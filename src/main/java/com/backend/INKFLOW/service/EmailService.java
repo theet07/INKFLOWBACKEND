@@ -137,13 +137,13 @@ public class EmailService {
     private void enviarViaBrevo(String destinatario, String assunto, String texto) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("api-key", resendApiKey); // Usando a mesma variável pra você não precisar recriar no Render, apenas substitua o valor
+        headers.set("api-key", resendApiKey.replace("\"", "").trim());
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> body = new HashMap<>();
         
         Map<String, String> sender = new HashMap<>();
-        sender.put("email", remetente); // O e-mail que você cadastrou no Gmail
+        sender.put("email", remetente.trim());
         sender.put("name", "InkFlow App");
         body.put("sender", sender);
         
@@ -158,8 +158,11 @@ public class EmailService {
         
         try {
             restTemplate.postForObject("https://api.brevo.com/v3/smtp/email", request, String.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            log.error("Erro na API do Brevo (Status {}): {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("Falha ao enviar e-mail via Brevo.");
         } catch (Exception e) {
-            log.error("Erro na API do Brevo: {}", e.getMessage());
+            log.error("Erro interno ao chamar Brevo: {}", e.getMessage(), e);
             throw new RuntimeException("Falha ao enviar e-mail via Brevo.");
         }
     }

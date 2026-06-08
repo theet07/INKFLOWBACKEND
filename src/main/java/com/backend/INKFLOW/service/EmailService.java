@@ -3,7 +3,6 @@ package com.backend.INKFLOW.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -13,38 +12,20 @@ import jakarta.mail.internet.MimeMessage;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestTemplate;
 
 @Service
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+    private static final String REMETENTE = "inkflowstudios07@gmail.com";
 
     @Autowired
     private JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
-    private String remetente;
-
-    @Value("${resend.api.key:}")
-    private String resendApiKey;
-
     public void enviarCodigoVerificacao(String destinatario, String codigo) {
         try {
-            if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
-                enviarViaBrevo(destinatario, "InkFlow — Seu código de verificação", "Seu código é: " + codigo);
-                log.info("Codigo de verificacao enviado via Resend API para: {}", destinatario);
-                return;
-            }
-
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(remetente);
+            message.setFrom(REMETENTE);
             message.setTo(destinatario);
             message.setSubject("InkFlow — Seu código de verificação");
             message.setText(
@@ -56,7 +37,7 @@ public class EmailService {
                 "— Equipe InkFlow"
             );
             mailSender.send(message);
-            log.info("Codigo de verificacao enviado via SMTP para: {}", destinatario);
+            log.info("Codigo de verificacao enviado para: {}", destinatario);
         } catch (Exception e) {
             log.error("Falha ao enviar e-mail para {}: {}", destinatario, e.getMessage());
             throw new RuntimeException("Falha ao enviar e-mail de verificacao. Tente novamente.");
@@ -65,14 +46,8 @@ public class EmailService {
 
     public void enviarCodigoRecuperacaoSenha(String destinatario, String codigo, String nomeCliente) {
         try {
-            if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
-                enviarViaBrevo(destinatario, "InkFlow — Recuperação de Senha", "Seu código de recuperação é: " + codigo);
-                log.info("Codigo de recuperacao de senha enviado via Resend API para: {}", destinatario);
-                return;
-            }
-
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(remetente);
+            message.setFrom(REMETENTE);
             message.setTo(destinatario);
             message.setSubject("InkFlow — Recuperação de Senha");
             message.setText(
@@ -95,7 +70,7 @@ public class EmailService {
     public void enviarEmailConfirmacaoLead(String destinatario, String nomeCompleto, String nomeEstudio, String especialidade, String whatsapp) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(remetente);
+            message.setFrom(REMETENTE);
             message.setTo(destinatario);
             message.setSubject("Recebemos sua solicitação - InkFlow 🎨");
             message.setText(
@@ -121,8 +96,8 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(remetente);
-            helper.setTo(remetente);
+            helper.setFrom(REMETENTE);
+            helper.setTo(REMETENTE);
             helper.setSubject("InkFlow — Backup Automático: " + filename);
             helper.setText("Backup automático gerado com sucesso.\n\nArquivo: " + filename +
                     "\nGerado em: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
@@ -131,39 +106,6 @@ public class EmailService {
             log.info("Backup enviado por email: {}", filename);
         } catch (Exception e) {
             log.error("Falha ao enviar backup por email: {}", e.getMessage(), e);
-        }
-    }
-
-    private void enviarViaBrevo(String destinatario, String assunto, String texto) {
-        RestTemplate restTemplate = new RestTemplate();
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("api-key", resendApiKey.replace("\"", "").trim());
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        Map<String, Object> body = new HashMap<>();
-        
-        Map<String, String> sender = new HashMap<>();
-        sender.put("email", remetente.trim());
-        sender.put("name", "Equipe InkFlow");
-        body.put("sender", sender);
-        
-        Map<String, String> to = new HashMap<>();
-        to.put("email", destinatario);
-        body.put("to", Collections.singletonList(to));
-        
-        body.put("subject", assunto);
-        body.put("htmlContent", "<p>" + texto.replace("\n", "<br>") + "</p>");
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        
-        try {
-            restTemplate.postForObject("https://api.brevo.com/v3/smtp/email", request, String.class);
-        } catch (org.springframework.web.client.HttpStatusCodeException e) {
-            log.error("Erro na API do Brevo (Status {}): {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("Falha ao enviar e-mail via Brevo.");
-        } catch (Exception e) {
-            log.error("Erro interno ao chamar Brevo: {}", e.getMessage(), e);
-            throw new RuntimeException("Falha ao enviar e-mail via Brevo.");
         }
     }
 }

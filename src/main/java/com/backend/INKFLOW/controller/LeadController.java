@@ -4,7 +4,6 @@ import com.backend.INKFLOW.dto.LeadArtistaRequest;
 import com.backend.INKFLOW.model.LeadArtista;
 import com.backend.INKFLOW.repository.LeadArtistaRepository;
 import com.backend.INKFLOW.service.ChatRateLimitService;
-import com.backend.INKFLOW.service.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +22,6 @@ public class LeadController {
     @Autowired
     private LeadArtistaRepository leadRepository;
 
-    @Autowired
-    private EmailService emailService;
-    
     @Autowired
     private ChatRateLimitService rateLimitService;
 
@@ -84,13 +80,6 @@ public class LeadController {
             lead.setWhatsapp(whatsappLimpo);
             lead.setEspecialidade(request.getEspecialidade().trim());
             leadRepository.save(lead);
-
-            // Tentar enviar email (não bloqueia se falhar)
-            try {
-                emailService.enviarEmailConfirmacaoLead(emailTrimmed, request.getNomeCompleto(), request.getNomeEstudio(), request.getEspecialidade(), request.getWhatsapp());
-            } catch (Exception emailError) {
-                log.warn("Email de confirmação não pôde ser enviado (SMTP bloqueado): {}", emailError.getMessage());
-            }
 
             return ResponseEntity.ok(Map.of(
                 "message", "Cadastro realizado com sucesso! Entraremos em contato via WhatsApp.",

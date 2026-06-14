@@ -131,16 +131,21 @@ public class ClienteController {
 
         String codigo = clienteService.gerarEsalvarCodigo(alvo);
 
-        try {
-            emailService.enviarCodigoVerificacao(alvo.getEmail(), codigo);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Conta criada mas falha ao enviar e-mail. Tente reenviar o codigo."));
-        }
-
+        // verificacao por email desativada temporariamente
+        alvo.setContaVerificada(true);
+        clienteService.saveCliente(alvo);
+        String token = jwtUtil.generateToken(alvo.getEmail(), "ROLE_CLIENTE");
         return ResponseEntity.ok(Map.of(
-                "message", "Codigo de verificacao enviado para " + alvo.getEmail(),
-                "email", alvo.getEmail()
+                "message", "Conta criada com sucesso!",
+                "email", alvo.getEmail(),
+                "verificado", true,
+                "token", token,
+                "user", Map.of(
+                        "id", alvo.getId(),
+                        "email", alvo.getEmail(),
+                        "nome", alvo.getFullName() != null ? alvo.getFullName() : "",
+                        "role", "ROLE_CLIENTE"
+                )
         ));
     }
 

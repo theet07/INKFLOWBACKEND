@@ -49,7 +49,9 @@ public class AppointmentController {
         return clienteService.getUserByEmail(auth.getName())
                 .map(c -> ResponseEntity.ok(
                         agendamentoService.getAgendamentosByClienteId(c.getId())
-                                .stream().map(AgendamentoDashboard::new).toList()))
+                                .stream()
+                                .filter(ag -> !"Tatuagem Externa".equalsIgnoreCase((ag.getServico() != null ? ag.getServico() : "").trim()))
+                                .map(AgendamentoDashboard::new).toList()))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -66,7 +68,9 @@ public class AppointmentController {
                 return ResponseEntity.status(403).body(Map.of("message", "Acesso negado."));
         }
         return ResponseEntity.ok(
-                agendamentos.stream().map(AgendamentoDashboard::new).toList());
+                agendamentos.stream()
+                        .filter(ag -> !"Tatuagem Externa".equalsIgnoreCase((ag.getServico() != null ? ag.getServico() : "").trim()))
+                        .map(AgendamentoDashboard::new).toList());
     }
 
     /** PUT /api/appointments/{id}/avaliar — apenas o cliente dono pode avaliar */

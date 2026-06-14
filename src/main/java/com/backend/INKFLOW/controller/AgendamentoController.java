@@ -28,7 +28,9 @@ public class AgendamentoController {
     @GetMapping
     public List<AgendamentoDashboard> getAllAgendamentos() {
         return agendamentoService.getAllAgendamentos()
-                .stream().map(AgendamentoDashboard::new).toList();
+                .stream()
+                .filter(ag -> !"Tatuagem Externa".equals(ag.getServico()))
+                .map(AgendamentoDashboard::new).toList();
     }
 
     /** Busca um agendamento pelo ID. */
@@ -60,7 +62,9 @@ public class AgendamentoController {
 
         List<AgendamentoDashboard> resultado = agendamentoService
                 .getAgendamentosByClienteId(clienteId)
-                .stream().map(AgendamentoDashboard::new).toList();
+                .stream()
+                .filter(ag -> !"Tatuagem Externa".equals(ag.getServico()))
+                .map(AgendamentoDashboard::new).toList();
 
         if (!isAdmin) {
             boolean isOwner = resultado.isEmpty() ||
@@ -88,7 +92,9 @@ public class AgendamentoController {
         if (isAdmin) {
             // Admin pode buscar qualquer artista pelo ID da URL
             List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByArtistaId(artistaId)
-                    .stream().map(AgendamentoDashboard::new).toList();
+                    .stream()
+                    .filter(ag -> !"Tatuagem Externa".equals(ag.getServico()))
+                    .map(AgendamentoDashboard::new).toList();
             return ResponseEntity.ok(resultado);
         }
 
@@ -104,7 +110,9 @@ public class AgendamentoController {
                     // Busca usando o email do token, nunca o ID da URL
                     List<AgendamentoDashboard> resultado = agendamentoService
                             .getAgendamentosByArtistaEmail(auth.getName())
-                            .stream().map(AgendamentoDashboard::new).toList();
+                            .stream()
+                            .filter(ag -> !"Tatuagem Externa".equals(ag.getServico()))
+                            .map(AgendamentoDashboard::new).toList();
                     return ResponseEntity.ok(resultado);
                 })
                 .orElse(ResponseEntity.status(403)
@@ -119,7 +127,9 @@ public class AgendamentoController {
         if (isAdmin) {
             // Admin vê todos os agendamentos com esse status
             List<AgendamentoDashboard> resultado = agendamentoService.getAgendamentosByStatus(status)
-                    .stream().map(AgendamentoDashboard::new).toList();
+                    .stream()
+                    .filter(ag -> !"Tatuagem Externa".equals(ag.getServico()))
+                    .map(AgendamentoDashboard::new).toList();
             return ResponseEntity.ok(resultado);
         }
         
@@ -129,7 +139,7 @@ public class AgendamentoController {
                     List<AgendamentoDashboard> resultado = agendamentoService
                             .getAgendamentosByArtistaEmail(auth.getName())
                             .stream()
-                            .filter(ag -> status.equals(ag.getStatus()))
+                            .filter(ag -> status.equals(ag.getStatus()) && !"Tatuagem Externa".equals(ag.getServico()))
                             .map(AgendamentoDashboard::new)
                             .toList();
                     return ResponseEntity.<Object>ok(resultado);

@@ -131,16 +131,21 @@ public class ClienteController {
 
         String codigo = clienteService.gerarEsalvarCodigo(alvo);
 
-        try {
-            emailService.enviarCodigoVerificacao(alvo.getEmail(), codigo);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Conta criada mas falha ao enviar e-mail. Tente reenviar o codigo."));
-        }
-
+        // verificacao por email desativada temporariamente
+        alvo.setContaVerificada(true);
+        clienteService.saveCliente(alvo);
+        String token = jwtUtil.generateToken(alvo.getEmail(), "ROLE_CLIENTE");
         return ResponseEntity.ok(Map.of(
-                "message", "Codigo de verificacao enviado para " + alvo.getEmail(),
-                "email", alvo.getEmail()
+                "message", "Conta criada com sucesso!",
+                "email", alvo.getEmail(),
+                "verificado", true,
+                "token", token,
+                "user", Map.of(
+                        "id", alvo.getId(),
+                        "email", alvo.getEmail(),
+                        "nome", alvo.getFullName() != null ? alvo.getFullName() : "",
+                        "role", "ROLE_CLIENTE"
+                )
         ));
     }
 
@@ -235,6 +240,35 @@ public class ClienteController {
                     }
                 })
                 .orElse(ResponseEntity.status(404).body(Map.of("message", "Usuario nao encontrado.")));
+    }
+
+    /**
+     * PUT /api/clientes/minha-senha
+     * Altera a senha do usuario autenticado.
+     * Body: { "senhaAtual": "...", "novaSenha": "..." }
+     */
+    @PutMapping("/minha-senha")
+    public ResponseEntity<?> alterarSenha(@RequestBody Map<String, String> body, Authentication auth) {
+        String senhaAtual = body.get("senhaAtual");
+        String novaSenha = body.get("novaSenha");
+
+        if (senhaAtual == null || senhaAtual.isBlank() || novaSenha == null || novaSenha.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("message", "Senha atual e nova senha são obrigatórias."));
+
+        if (novaSenha.length() < 6)
+            return ResponseEntity.badRequest().body(Map.of("message", "A nova senha deve ter no mínimo 6 caracteres."));
+
+        return clienteService.getUserByEmail(auth.getName())
+                .map(cliente -> {
+                    if (!passwordEncoder.matches(senhaAtual, cliente.getPassword())) {
+                        return ResponseEntity.status(401)
+                                .body(Map.of("message", "A senha atual está incorreta."));
+                    }
+                    cliente.setPassword(passwordEncoder.encode(novaSenha));
+                    clienteService.saveCliente(cliente);
+                    return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso."));
+                })
+                .orElse(ResponseEntity.status(404).body(Map.of("message", "Usuário não encontrado.")));
     }
 
     @PostMapping(value = "/{id}/foto", consumes = "multipart/form-data")

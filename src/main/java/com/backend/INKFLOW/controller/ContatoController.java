@@ -1,13 +1,13 @@
 package com.backend.INKFLOW.controller;
 
 import com.backend.INKFLOW.dto.ContatoRequest;
+import com.backend.INKFLOW.service.BrevoService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -21,22 +21,20 @@ public class ContatoController {
     private static final Logger log = LoggerFactory.getLogger(ContatoController.class);
 
     @Autowired
-    private JavaMailSender mailSender;
+    private BrevoService brevoService;
+
+    @Value("${brevo.sender.email}")
+    private String senderEmail;
 
     @PostMapping
     public ResponseEntity<?> enviarContato(@Valid @RequestBody ContatoRequest request) {
         try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setTo("inkflowstudios07@gmail.com");
-            mail.setSubject("Novo contato via InkFlow — " + request.getNome());
-            mail.setText(
+            String texto =
                 "Nome: " + request.getNome() + "\n" +
                 "E-mail: " + request.getEmail() + "\n" +
                 "Telefone: " + (request.getTelefone() != null ? request.getTelefone() : "Não informado") + "\n\n" +
-                "Mensagem:\n" + request.getMensagem()
-            );
-            mail.setReplyTo(request.getEmail());
-            mailSender.send(mail);
+                "Mensagem:\n" + request.getMensagem();
+            brevoService.enviar(senderEmail, "Novo contato via InkFlow — " + request.getNome(), texto);
             return ResponseEntity.ok(Map.of("message", "Mensagem enviada com sucesso!"));
         } catch (Exception e) {
             log.error("Erro ao enviar email de contato: {}", e.getMessage(), e);

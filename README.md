@@ -117,53 +117,6 @@ src/main/java/com/backend/INKFLOW/
 
 ---
 
-## ▶️ Como Executar
-
-### Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
-
-```env
-DB_URL=jdbc:sqlserver://<host>:1433;databaseName=<db>;encrypt=true;trustServerCertificate=true
-DB_USERNAME=<usuario>
-DB_PASSWORD=<senha>
-
-JWT_SECRET=<chave-secreta-longa>
-
-CLOUDINARY_CLOUD_NAME=<cloud_name>
-CLOUDINARY_API_KEY=<api_key>
-CLOUDINARY_API_SECRET=<api_secret>
-
-BREVO_API_KEY=<chave_brevo>
-BREVO_SENDER_EMAIL=<email_remetente>
-
-GROQ_API_KEY=<chave_groq>
-
-ADMIN_EMAIL=<email_admin>
-ADMIN_PASSWORD_HASH=<bcrypt_hash>
-
-DEFAULT_CLIENT_PASS=<senha_padrao_cliente>
-```
-
-### Localmente
-
-```bash
-git clone <url-do-repo>
-cd INKFLOWBACKEND
-./mvnw spring-boot:run
-```
-
-A API ficará disponível em `http://localhost:8080`.
-
-### Com Docker
-
-```bash
-docker build -t inkflow-backend .
-docker run -p 8080:8080 --env-file .env inkflow-backend
-```
-
----
-
 ## 🌐 Deploy
 
 A API está hospedada no **Render**:

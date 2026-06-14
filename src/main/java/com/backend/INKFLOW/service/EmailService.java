@@ -52,6 +52,24 @@ public class EmailService {
         }
     }
 
+    public void enviarCodigoRecuperacaoSenha(String destinatario, String codigo, String nome) {
+        try {
+            String texto =
+                "Ola, " + (nome != null ? nome : "") + "!\n\n" +
+                "Recebemos uma solicitacao de redefinicao de senha para sua conta InkFlow.\n\n" +
+                "Seu codigo de recuperacao e:\n\n" +
+                "  " + codigo + "\n\n" +
+                "Este codigo expira em 15 minutos.\n" +
+                "Se voce nao solicitou isso, ignore este e-mail.\n\n" +
+                "-- Equipe InkFlow";
+            brevoService.enviar(destinatario, "InkFlow -- Redefinicao de Senha", texto);
+            log.info("Codigo de recuperacao enviado para: {}", destinatario);
+        } catch (Exception e) {
+            log.error("Falha ao enviar codigo de recuperacao para {}: {}", destinatario, e.getMessage());
+            throw new RuntimeException("Falha ao enviar e-mail de recuperacao.", e);
+        }
+    }
+
     public void enviarBackupEmail(String conteudo, String filename) {
         try {
             String texto = "Backup gerado com sucesso.\n\nArquivo: " + filename +

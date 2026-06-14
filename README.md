@@ -129,7 +129,7 @@ https://inkflowbackend-4w1g.onrender.com
 
 ## 👤 Autores
 
-**Matheus** & **Nathan**
+**Matheus**
 
 ---
 

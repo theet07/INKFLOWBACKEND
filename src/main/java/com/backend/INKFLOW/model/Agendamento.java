@@ -25,6 +25,8 @@ public class Agendamento {
     private LocalDateTime dataHora;
 
     private String servico;
+
+    @Column(length = 1000)
     private String descricao;
     private String status = "PENDENTE";
     private Double preco;
@@ -38,7 +40,7 @@ public class Agendamento {
     private Double valorPendente;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @Column(name = "regiao", length = 100, nullable = true)
     private String regiao;
@@ -55,8 +57,23 @@ public class Agendamento {
     @Column(name = "imagem_referencia_url", length = 1000, nullable = true)
     private String imagemReferenciaUrl;
 
+    @Column(name = "imagem_resultado_url", length = 1000, nullable = true)
+    private String imagemResultadoUrl;
+
     @Column(name = "avaliado", nullable = false, columnDefinition = "boolean default false")
     private boolean avaliado = false;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() { this.updatedAt = LocalDateTime.now(); }
 
     public Agendamento() {}
 
@@ -114,6 +131,12 @@ public class Agendamento {
     public String getImagemReferenciaUrl() { return imagemReferenciaUrl; }
     public void setImagemReferenciaUrl(String imagemReferenciaUrl) { this.imagemReferenciaUrl = imagemReferenciaUrl; }
 
+    public String getImagemResultadoUrl() { return imagemResultadoUrl; }
+    public void setImagemResultadoUrl(String imagemResultadoUrl) { this.imagemResultadoUrl = imagemResultadoUrl; }
+
     public boolean isAvaliado() { return avaliado; }
     public void setAvaliado(boolean avaliado) { this.avaliado = avaliado; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

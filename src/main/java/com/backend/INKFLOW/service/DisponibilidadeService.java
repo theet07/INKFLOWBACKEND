@@ -36,6 +36,11 @@ public class DisponibilidadeService {
         return disponibilidadeRepository.findByArtistaIdAndAtivoTrue(artistaId);
     }
 
+    /** Busca uma disponibilidade por ID para validação de ownership. */
+    public Optional<DisponibilidadeArtista> getById(Long id) {
+        return disponibilidadeRepository.findById(id);
+    }
+
     /**
      * Salva ou atualiza a disponibilidade de um dia da semana para um artista.
      * Usado pelo artista no painel de configuracoes.

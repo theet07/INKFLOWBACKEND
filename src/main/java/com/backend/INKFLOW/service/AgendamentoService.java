@@ -2,6 +2,7 @@ package com.backend.INKFLOW.service;
 
 import com.backend.INKFLOW.model.Agendamento;
 import com.backend.INKFLOW.model.Cliente;
+import com.backend.INKFLOW.service.CicatrizacaoService;
 import com.backend.INKFLOW.repository.AgendamentoRepository;
 import com.backend.INKFLOW.repository.ClienteRepository;
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -31,6 +33,7 @@ public class AgendamentoService {
     @Autowired private ClienteService clienteService;
     @Autowired private ArtistaService artistaService;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private CicatrizacaoService cicatrizacaoService;
 
     @Value("${landing.default.client.password}")
     private String defaultClientPassword;
@@ -101,6 +104,11 @@ public class AgendamentoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de dataHora invalido. Use yyyy-MM-ddTHH:mm:ss");
         }
 
+        // Validação: não permite agendamento no passado
+        if (dataHora.isBefore(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
+        }
+
         Agendamento ag = new Agendamento();
         ag.setCliente(cliente);
         ag.setArtista(artista);
@@ -113,6 +121,9 @@ public class AgendamentoService {
         if (body.get("altura")  instanceof Number) ag.setAltura(((Number) body.get("altura")).doubleValue());
         if (body.get("tags") != null)       ag.setTags((String) body.get("tags"));
         if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
+
+        // Validação anti double-booking: verifica conflito de horário
+        verificarConflito(artistaId, dataHora);
 
         log.info("[Agendamento] Direto: clienteId={} artistaId={} dataHora={}", clienteId, artistaId, dataHora);
         return agendamentoRepository.save(ag);
@@ -149,6 +160,11 @@ public class AgendamentoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de data/hora invalido. Use date: YYYY-MM-DD e time: HH:mm.");
         }
 
+        // Validação: não permite agendamento no passado
+        if (dataHora.isBefore(LocalDateTime.now(ZoneId.of("America/Sao_Paulo")))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Não é possível agendar para uma data no passado.");
+        }
+
         Agendamento ag = new Agendamento();
         ag.setCliente(cliente);
         ag.setArtista(artista);
@@ -163,6 +179,9 @@ public class AgendamentoService {
         if (body.get("altura")  instanceof Number) ag.setAltura(((Number) body.get("altura")).doubleValue());
         if (body.get("tags") != null)       ag.setTags((String) body.get("tags"));
         if (body.get("imagemReferenciaUrl") != null) ag.setImagemReferenciaUrl((String) body.get("imagemReferenciaUrl"));
+
+        // Validação anti double-booking: verifica conflito de horário
+        verificarConflito(artistId, dataHora);
 
         log.info("[Agendamento] LandingPage: clienteEmail={} artistaId={} dataHora={}", clienteEmail, artistId, dataHora);
         return agendamentoRepository.save(ag);
@@ -193,12 +212,27 @@ public class AgendamentoService {
         return agendamentoRepository.save(agendamento);
     }
 
+    private static final java.util.Set<String> VALID_STATUSES = java.util.Set.of(
+            "PENDENTE", "AGENDADO", "CONFIRMADO", "EM_ANDAMENTO", "REALIZADO", "CANCELADO", "FINALIZADO");
+
     public Optional<Agendamento> updateStatus(Long id, String status, Integer avaliacao, String observacoes) {
+        if (status != null && !VALID_STATUSES.contains(status.toUpperCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Status invalido. Valores aceitos: " + VALID_STATUSES);
+        }
         return agendamentoRepository.findById(id).map(ag -> {
             ag.setStatus(status);
             if (avaliacao != null) ag.setAvaliacao(avaliacao);
             if (observacoes != null) ag.setObservacoes(observacoes);
-            return agendamentoRepository.save(ag);
+            Agendamento salvo = agendamentoRepository.save(ag);
+            if ("REALIZADO".equals(status)) {
+                try {
+                    cicatrizacaoService.iniciar(salvo.getId());
+                } catch (Exception e) {
+                    log.warn("[Cicatrizacao] Nao foi possivel iniciar para agendamentoId={}: {}", salvo.getId(), e.getMessage());
+                }
+            }
+            return salvo;
         });
     }
 
@@ -213,5 +247,26 @@ public class AgendamentoService {
 
     public void deleteAgendamento(Long id) {
         agendamentoRepository.deleteById(id);
+    }
+
+    // -------------------------------------------------------------------------
+    // Validação de conflitos
+    // -------------------------------------------------------------------------
+
+    /**
+     * Verifica se já existe um agendamento ativo no mesmo horário para o artista.
+     * Previne double-booking quando dois clientes tentam agendar simultaneamente.
+     */
+    private void verificarConflito(Integer artistaId, LocalDateTime dataHora) {
+        List<Agendamento> ocupados = agendamentoRepository.findOcupadosByArtistaIdAndDia(
+                artistaId,
+                dataHora.toLocalDate().atStartOfDay(),
+                dataHora.toLocalDate().plusDays(1).atStartOfDay());
+        boolean horarioOcupado = ocupados.stream()
+                .anyMatch(c -> c.getDataHora().equals(dataHora));
+        if (horarioOcupado) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Este horário já está ocupado. Escolha outro horário.");
+        }
     }
 }

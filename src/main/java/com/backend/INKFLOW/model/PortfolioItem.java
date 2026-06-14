@@ -1,7 +1,9 @@
 package com.backend.INKFLOW.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "portfolio_items")
 public class PortfolioItem {

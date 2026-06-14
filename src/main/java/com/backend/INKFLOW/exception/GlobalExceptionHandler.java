@@ -1,4 +1,4 @@
-package com.backend.INKFLOW.config;
+package com.backend.INKFLOW.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

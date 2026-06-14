@@ -30,6 +30,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("inicioDia") LocalDateTime inicioDia,
             @Param("fimDia") LocalDateTime fimDia);
     List<Agendamento> findAllByOrderByDataHoraAsc();
+
+    boolean existsByClienteIdAndArtistaId(Long clienteId, Integer artistaId);
+    boolean existsByArtistaIdAndClienteId(Integer artistaId, Long clienteId);
     
     @Modifying(clearAutomatically = true)
     @Transactional

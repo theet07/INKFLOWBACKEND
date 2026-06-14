@@ -106,8 +106,18 @@ public class DisponibilidadeController {
     /** Remove (desativa) um registro de disponibilidade. Restrito ao artista ou ADMIN. */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> remover(@PathVariable Long id, Authentication auth) {
-        disponibilidadeService.remover(id);
-        return ResponseEntity.ok().build();
+        // Buscar a disponibilidade para validar ownership
+        return disponibilidadeService.getById(id)
+                .map(disp -> {
+                    Integer artistaId = disp.getArtista() != null ? disp.getArtista().getId() : null;
+                    if (artistaId == null || !isOwnerOrAdmin(artistaId, auth)) {
+                        return ResponseEntity.status(403)
+                                .body(Map.of("message", "Voce nao tem permissao para remover esta disponibilidade."));
+                    }
+                    disponibilidadeService.remover(id);
+                    return ResponseEntity.ok(Map.of("message", "Disponibilidade removida com sucesso."));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     private boolean isOwnerOrAdmin(Integer artistaId, Authentication auth) {

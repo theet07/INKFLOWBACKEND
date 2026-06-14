@@ -25,6 +25,12 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private AgendamentoRateLimitFilter agendamentoRateLimitFilter;
+
+    @Autowired
+    private ContatoRateLimitFilter contatoRateLimitFilter;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
@@ -38,7 +44,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("https://inkflowfrontend.vercel.app", "http://localhost:*", "https://*.app.github.dev", "https://*.vercel.app"));
+        config.setAllowedOriginPatterns(List.of(
+            "https://inkflowfrontend.vercel.app",
+            "https://inkflow-*.vercel.app",
+            "http://localhost:*",
+            "https://*.app.github.dev",
+            "exp://*",
+            "http://192.168.*"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -55,6 +68,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/ping", "/api/health", "/api/status", "/").permitAll()
+                .requestMatchers("/api/contato").permitAll()
+                .requestMatchers("/api/leads/artista").permitAll()
+                .requestMatchers("/api/upload").authenticated()
+                .requestMatchers("/api/chat").authenticated()
+                .requestMatchers("/api/mensagens/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/solicitar-codigo").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/verificar-codigo").permitAll()
@@ -97,6 +115,17 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/artistas/{id}/foto").hasRole("ARTISTA")
                 .requestMatchers(HttpMethod.POST, "/api/artists/{id}/foto").hasRole("ARTISTA")
 
+                // Cicatrização — autenticado
+                .requestMatchers("/api/cicatrizacao/**").authenticated()
+
+                // Novos endpoints mobile — autenticado
+                .requestMatchers("/api/badges/**").authenticated()
+                .requestMatchers("/api/estatisticas/**").authenticated()
+                .requestMatchers("/api/dicas/**").authenticated()
+                .requestMatchers("/api/fotos/**").authenticated()
+                .requestMatchers("/api/quiz/**").authenticated()
+                .requestMatchers("/api/notificacoes/**").authenticated()
+
                 // Rotas de cliente autenticado
                 .requestMatchers(HttpMethod.GET, "/api/appointments/meus").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/appointments/cliente/**").authenticated()
@@ -106,6 +135,8 @@ public class SecurityConfig {
 
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(agendamentoRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(contatoRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

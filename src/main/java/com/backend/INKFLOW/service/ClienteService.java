@@ -34,6 +34,18 @@ public class ClienteService {
         return clienteRepository.findAll();
     }
     
+    public Optional<Cliente> getById(Long id) {
+        return clienteRepository.findById(id);
+    }
+    
+    public Optional<Cliente> getByEmail(String email) {
+        return clienteRepository.findByEmail(email);
+    }
+    
+    public Cliente save(Cliente cliente) {
+        return clienteRepository.save(cliente);
+    }
+    
     public Optional<Cliente> getClienteById(Long id) {
         return clienteRepository.findById(id);
     }
@@ -71,22 +83,23 @@ public class ClienteService {
         return clienteRepository.findByEmail(email);
     }
 
-    /** Gera um codigo OTP de 6 digitos, zera tentativas e salva. */
+    /** Gera um codigo OTP de 6 digitos, zera tentativas, salva timestamp e salva. */
     public String gerarEsalvarCodigo(Cliente cliente) {
         String codigo = String.format("%06d", secureRandom.nextInt(1000000));
         cliente.setCodigoVerificacao(codigo);
         cliente.setContaVerificada(false);
         cliente.setTentativasOtp(0);
+        cliente.setOtpCreatedAt(java.time.LocalDateTime.now());
         clienteRepository.save(cliente);
-        log.debug("[OTP] Codigo gerado para {}", cliente.getEmail());
+        log.debug("[OTP] Codigo gerado para {} com expiracao de 15 minutos", cliente.getEmail());
         return codigo;
     }
 
     /**
-     * Verifica o codigo OTP com rate limiting de 5 tentativas.
+     * Verifica o codigo OTP com rate limiting de 5 tentativas e expiracao de 15 minutos.
      * Retorna:
      *   Optional.of(cliente) — sucesso
-     *   Optional.empty()     — codigo errado ou nulo
+     *   Optional.empty()     — codigo errado, nulo ou expirado
      *   Lanca TooManyAttemptsException — limite atingido (429)
      */
     public Optional<Cliente> verificarCodigo(String email, String codigo) {
@@ -108,6 +121,18 @@ public class ClienteService {
             throw new TooManyOtpAttemptsException("Limite de tentativas excedido. Solicite um novo codigo.");
         }
 
+        // Validar expiracao de 15 minutos
+        if (cliente.getOtpCreatedAt() != null) {
+            java.time.LocalDateTime agora = java.time.LocalDateTime.now();
+            java.time.LocalDateTime expiracao = cliente.getOtpCreatedAt().plusMinutes(15);
+            if (agora.isAfter(expiracao)) {
+                log.debug("[OTP] Codigo expirado para {}. Criado em: {}, Agora: {}", email, cliente.getOtpCreatedAt(), agora);
+                cliente.setTentativasOtp(cliente.getTentativasOtp() + 1);
+                clienteRepository.save(cliente);
+                return Optional.empty();
+            }
+        }
+
         if (codigoRecebido == null || codigoBanco == null || !codigoRecebido.equals(codigoBanco)) {
             cliente.setTentativasOtp(cliente.getTentativasOtp() + 1);
             clienteRepository.save(cliente);
@@ -117,6 +142,7 @@ public class ClienteService {
 
         cliente.setContaVerificada(true);
         cliente.setCodigoVerificacao(null);
+        cliente.setOtpCreatedAt(null);
         cliente.setTentativasOtp(0);
         Cliente salvo = clienteRepository.save(cliente);
         log.debug("[OTP] Sucesso: conta verificada para {}", email);

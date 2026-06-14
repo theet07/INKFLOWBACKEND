@@ -1,23 +1,29 @@
 package com.backend.INKFLOW.controller;
 
+import com.backend.INKFLOW.dto.ClienteCreateRequest;
 import com.backend.INKFLOW.model.Cliente;
-import com.backend.INKFLOW.model.ClienteDTO;
-import com.backend.INKFLOW.model.VerificacaoDTO;
+import com.backend.INKFLOW.dto.ClienteDTO;
+import com.backend.INKFLOW.dto.VerificacaoDTO;
 import com.backend.INKFLOW.security.JwtUtil;
 import com.backend.INKFLOW.service.ClienteService;
 import com.backend.INKFLOW.service.EmailService;
 import com.backend.INKFLOW.service.FotoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/clientes")
@@ -58,13 +64,21 @@ public class ClienteController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createCliente(@RequestBody Cliente cliente) {
-        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+    public ResponseEntity<?> createCliente(@Valid @RequestBody ClienteCreateRequest request) {
+        if (request.getEmail() == null || !request.getEmail().matches(GMAIL_REGEX))
             return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
-        if (clienteService.existsByUsername(cliente.getUsername()))
+        if (clienteService.existsByUsername(request.getUsername()))
             return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
-        if (clienteService.existsByEmail(cliente.getEmail()))
+        if (clienteService.existsByEmail(request.getEmail()))
             return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
+        
+        Cliente cliente = new Cliente();
+        cliente.setUsername(request.getUsername());
+        cliente.setEmail(request.getEmail());
+        cliente.setPassword(request.getPassword());
+        cliente.setFullName(request.getFullName());
+        cliente.setTelefone(request.getTelefone());
+        
         return ResponseEntity.ok(clienteService.saveCliente(cliente));
     }
 
@@ -75,15 +89,15 @@ public class ClienteController {
      * - Email existente + conta verificada: retorna 409.
      */
     @PostMapping("/solicitar-codigo")
-    public ResponseEntity<?> solicitarCodigo(@RequestBody Cliente cliente) {
-        if (cliente.getEmail() == null || !cliente.getEmail().matches(GMAIL_REGEX))
+    public ResponseEntity<?> solicitarCodigo(@Valid @RequestBody ClienteCreateRequest request) {
+        if (request.getEmail() == null || !request.getEmail().matches(GMAIL_REGEX))
             return ResponseEntity.status(422).body(Map.of("message", "Clientes devem utilizar obrigatoriamente um e-mail @gmail.com"));
-        if (cliente.getPassword() == null || cliente.getPassword().isBlank())
+        if (request.getPassword() == null || request.getPassword().isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Senha e obrigatoria."));
-        if (cliente.getUsername() == null || cliente.getUsername().isBlank())
+        if (request.getUsername() == null || request.getUsername().isBlank())
             return ResponseEntity.badRequest().body(Map.of("message", "Username e obrigatorio."));
 
-        Optional<Cliente> existente = clienteService.getUserByEmail(cliente.getEmail());
+        Optional<Cliente> existente = clienteService.getUserByEmail(request.getEmail());
         Cliente alvo;
 
         if (existente.isPresent()) {
@@ -93,17 +107,24 @@ public class ClienteController {
                 return ResponseEntity.status(409).body(Map.of("message", "Email já cadastrado."));
             }
             // Conta nao verificada — atualiza dados e reenvia OTP
-            ex.setFullName(cliente.getFullName());
-            ex.setTelefone(cliente.getTelefone());
-            ex.setUsername(cliente.getUsername());
-            if (cliente.getPassword() != null && !cliente.getPassword().startsWith("$2a$")) {
-                ex.setPassword(cliente.getPassword());
+            ex.setFullName(request.getFullName());
+            ex.setTelefone(request.getTelefone());
+            ex.setUsername(request.getUsername());
+            if (request.getPassword() != null && !request.getPassword().startsWith("$2a$")) {
+                ex.setPassword(request.getPassword());
             }
             alvo = clienteService.saveCliente(ex);
         } else {
             // Novo cliente
-            if (clienteService.existsByUsername(cliente.getUsername()))
+            if (clienteService.existsByUsername(request.getUsername()))
                 return ResponseEntity.badRequest().body(Map.of("message", "Username já cadastrado."));
+            
+            Cliente cliente = new Cliente();
+            cliente.setUsername(request.getUsername());
+            cliente.setEmail(request.getEmail());
+            cliente.setPassword(request.getPassword());
+            cliente.setFullName(request.getFullName());
+            cliente.setTelefone(request.getTelefone());
             cliente.setContaVerificada(false);
             alvo = clienteService.saveCliente(cliente);
         }
@@ -181,7 +202,7 @@ public class ClienteController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Erro ao deletar cliente {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao deletar cliente."));
         }
     }
 
@@ -230,6 +251,9 @@ public class ClienteController {
                 cliente.setProfileImage(url);
                 clienteService.saveCliente(cliente);
                 return ResponseEntity.ok(Map.of("fotoUrl", url));
+            } catch (ResponseStatusException e) {
+                return ResponseEntity.status(e.getStatusCode())
+                        .body(Map.of("message", e.getReason()));
             } catch (Exception e) {
                 log.error("Erro ao fazer upload da foto para cliente {}: {}", id, e.getMessage(), e);
                 return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao fazer upload da foto."));
@@ -265,5 +289,16 @@ public class ClienteController {
         return clienteService.getClienteById(clienteId)
                 .map(c -> c.getEmail().equals(auth.getName()))
                 .orElse(false);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return ResponseEntity.badRequest().body(Map.of("message", errors.values().iterator().next()));
     }
 }

@@ -62,7 +62,6 @@ public class BackupController {
                     + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     + ".sql";
             log.info("Download de backup solicitado: {}", filename);
-            emailService.enviarBackupEmail(sql, filename);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .contentType(MediaType.parseMediaType("application/sql"))
@@ -70,7 +69,7 @@ public class BackupController {
         } catch (Exception e) {
             log.error("Erro ao gerar backup para download: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao gerar backup: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao gerar backup."));
         }
     }
 
@@ -87,7 +86,7 @@ public class BackupController {
         } catch (Exception e) {
             log.error("Erro ao disparar backup por email: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("message", "Erro ao enviar backup: " + e.getMessage()));
+                    .body(Map.of("message", "Erro ao enviar backup."));
         }
     }
 }

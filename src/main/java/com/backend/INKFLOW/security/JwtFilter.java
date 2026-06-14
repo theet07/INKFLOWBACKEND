@@ -68,7 +68,7 @@ public class JwtFilter extends OncePerRequestFilter {
             log.error("Erro no JwtFilter [{}] {}: {}", request.getMethod(), request.getRequestURI(), e.getMessage(), e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"error\":\"" + e.getClass().getSimpleName() + "\",\"message\":\"" + e.getMessage() + "\"}");
+            response.getWriter().write("{\"error\":\"Erro de autenticacao\",\"message\":\"Falha ao processar token. Tente fazer login novamente.\"}");
         }
     }
 }

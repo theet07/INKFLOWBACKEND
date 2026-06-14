@@ -1,7 +1,7 @@
 package com.backend.INKFLOW.controller;
 
-import com.backend.INKFLOW.model.ArtistaDTO;
-import com.backend.INKFLOW.model.ArtistaVitrine;
+import com.backend.INKFLOW.dto.ArtistaDTO;
+import com.backend.INKFLOW.dto.ArtistaVitrine;
 import com.backend.INKFLOW.service.ArtistaService;
 import com.backend.INKFLOW.service.DisponibilidadeService;
 import com.backend.INKFLOW.service.FotoService;
@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -72,15 +73,17 @@ public class ArtistaController {
     public ResponseEntity<?> updateArtista(@PathVariable Integer id,
                                             @RequestBody Map<String, String> body,
                                             Authentication auth) {
-        return artistaService.getByEmail(auth.getName())
-                .filter(a -> a.getId().equals(id))
-                .map(artista -> {
-                    if (body.containsKey("nome")) artista.setNome(body.get("nome"));
-                    if (body.containsKey("bio")) artista.setBio(body.get("bio"));
-                    if (body.containsKey("especialidades")) artista.setEspecialidades(body.get("especialidades"));
-                    return ResponseEntity.ok(ArtistaDTO.fromEntity(artistaService.save(artista)));
-                })
-                .orElse(ResponseEntity.status(403).build());
+        java.util.Optional<com.backend.INKFLOW.model.Artista> opt = artistaService.getByEmail(auth.getName())
+                .filter(a -> a.getId().equals(id));
+        if (opt.isPresent()) {
+            com.backend.INKFLOW.model.Artista artista = opt.get();
+            if (body.containsKey("nome")) artista.setNome(body.get("nome"));
+            if (body.containsKey("bio")) artista.setBio(body.get("bio"));
+            if (body.containsKey("especialidades")) artista.setEspecialidades(body.get("especialidades"));
+            return ResponseEntity.ok(ArtistaDTO.fromEntity(artistaService.save(artista)));
+        } else {
+            return ResponseEntity.status(403).build();
+        }
     }
 
     /** POST /api/artistas/{id}/foto — upload de foto de perfil do artista */
@@ -100,6 +103,9 @@ public class ArtistaController {
                         artista.setFotoUrl(url);
                         artistaService.save(artista);
                         return ResponseEntity.ok(Map.of("fotoUrl", url));
+                    } catch (ResponseStatusException e) {
+                        return ResponseEntity.status(e.getStatusCode())
+                                .body(Map.of("message", e.getReason()));
                     } catch (Exception e) {
                         return ResponseEntity.internalServerError()
                                 .body(Map.of("message", "Erro ao fazer upload da foto."));

@@ -20,6 +20,10 @@ public class ArtistaService {
     public Optional<Artista> getById(Integer id) {
         return artistaRepository.findById(id);
     }
+    
+    public Optional<Artista> getById(Long id) {
+        return artistaRepository.findById(id.intValue());
+    }
 
     public Optional<Artista> getByEmail(String email) {
         return artistaRepository.findByEmail(email);

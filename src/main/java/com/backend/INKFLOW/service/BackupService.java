@@ -229,7 +229,24 @@ public class BackupService {
 
     private String q(String val) {
         if (val == null) return "NULL";
-        return "'" + val.replace("'", "''") + "'";
+        return "'" + val
+            .replace("'", "''")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\0", "")
+            + "'";
+    }
+
+    @Scheduled(cron = "0 56 2 * * *")
+    public void warmupBancoDados() {
+        log.info(">>> WARMUP DO BANCO INICIADO (4 min antes do backup) <<<");
+        try {
+            // Faz uma query simples para acordar o banco
+            long count = clienteRepository.count();
+            log.info("Banco acordado com sucesso. Total de clientes: {}", count);
+        } catch (Exception e) {
+            log.warn("Falha no warmup do banco: {}", e.getMessage());
+        }
     }
 
     @Scheduled(cron = "0 0 3 * * *")
@@ -237,11 +254,7 @@ public class BackupService {
         log.info(">>> GATILHO DE BACKUP ACIONADO <<<");
         try {
             String conteudo = gerarSql();
-            String filename = "inkflow_backup_"
-                    + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                    + ".sql";
             log.info("Backup gerado: {} linhas de SQL", conteudo.split("\n").length);
-            emailService.enviarBackupEmail(conteudo, filename);
         } catch (Exception e) {
             log.error("Falha no backup automatico: {}", e.getMessage(), e);
         }

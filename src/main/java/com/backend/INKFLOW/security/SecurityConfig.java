@@ -45,6 +45,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of(
+            "https://*.vercel.app",
+            "https://inkflowbr.vercel.app",
             "https://inkflowfrontend.vercel.app",
             "https://inkflow-*.vercel.app",
             "http://localhost:*",

@@ -71,7 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/contato").permitAll()
                 .requestMatchers("/api/leads/artista").permitAll()
                 .requestMatchers("/api/upload").authenticated()
-                .requestMatchers("/api/chat").authenticated()
+                .requestMatchers("/api/chat").permitAll()
                 .requestMatchers("/api/mensagens/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/clientes/solicitar-codigo").permitAll()

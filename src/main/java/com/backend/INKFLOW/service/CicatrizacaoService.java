@@ -290,16 +290,22 @@ public class CicatrizacaoService {
         List<CheckpointDia> checkpoints = checkpointDiaRepository
                 .findByCicatrizacaoIdOrderByNumeroDiaAsc(cicatrizacaoId);
 
+        List<CheckpointDia> modificados = new java.util.ArrayList<>();
+
         for (CheckpointDia cp : checkpoints) {
             if ("COMPLETO".equals(cp.getStatusDia()) || "PARCIAL".equals(cp.getStatusDia())) continue;
 
             if (cp.getData().isEqual(hoje)) {
                 cp.setStatusDia("DISPONIVEL");
-                checkpointDiaRepository.save(cp);
+                modificados.add(cp);
             } else if (cp.getData().isBefore(hoje) && "BLOQUEADO".equals(cp.getStatusDia())) {
                 cp.setStatusDia("PERDIDO");
-                checkpointDiaRepository.save(cp);
+                modificados.add(cp);
             }
+        }
+
+        if (!modificados.isEmpty()) {
+            checkpointDiaRepository.saveAll(modificados);
         }
     }
 

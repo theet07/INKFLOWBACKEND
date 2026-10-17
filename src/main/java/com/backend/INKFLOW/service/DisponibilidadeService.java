@@ -72,6 +72,11 @@ public class DisponibilidadeService {
     public List<String> getSlotsDisponiveis(Integer artistaId, LocalDate data) {
         if (artistaId == null || data == null) return List.of();
 
+        var artistaOpt = artistaService.getById(artistaId);
+        if (artistaOpt.isEmpty() || Boolean.FALSE.equals(artistaOpt.get().getAtivo())) {
+            return List.of();
+        }
+
         int diaSemana = data.getDayOfWeek().getValue() - 1;
 
         Optional<DisponibilidadeArtista> dispOpt =
@@ -128,13 +133,16 @@ public class DisponibilidadeService {
 
         Map<String, List<String>> resultado = new java.util.LinkedHashMap<>();
         inicio.datesUntil(fim.plusDays(1))
-                .filter(d -> !d.isBefore(hoje))
                 .forEach(d -> {
-                    try {
-                        List<String> slots = getSlotsDisponiveis(artistaId, d);
-                        resultado.put(d.toString(), slots != null ? slots : List.of());
-                    } catch (Exception e) {
+                    if (d.isBefore(hoje)) {
                         resultado.put(d.toString(), List.of());
+                    } else {
+                        try {
+                            List<String> slots = getSlotsDisponiveis(artistaId, d);
+                            resultado.put(d.toString(), slots != null ? slots : List.of());
+                        } catch (Exception e) {
+                            resultado.put(d.toString(), List.of());
+                        }
                     }
                 });
         return resultado;

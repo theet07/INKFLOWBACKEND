@@ -94,6 +94,10 @@ public class AgendamentoService {
         var artista = artistaService.getById(artistaId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artista id=" + artistaId + " nao encontrado."));
 
+        if (Boolean.FALSE.equals(artista.getAtivo())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este artista não está aceitando agendamentos no momento.");
+        }
+
         String dataHoraStr = (String) body.get("dataHora");
         if (dataHoraStr == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dataHora e obrigatorio.");
@@ -140,6 +144,10 @@ public class AgendamentoService {
         Integer artistId = ((Number) artistIdRaw).intValue();
         var artista = artistaService.getById(artistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artista nao encontrado."));
+
+        if (Boolean.FALSE.equals(artista.getAtivo())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este artista não está aceitando agendamentos no momento.");
+        }
 
         String clienteNome = (String) body.get("clienteNome");
         Cliente cliente = clienteService.getUserByEmail(clienteEmail).orElseGet(() -> {

@@ -68,18 +68,46 @@ public class ArtistaController {
         return ResponseEntity.ok(dias);
     }
 
-    /** PUT /api/artistas/{id} — atualiza nome, bio e especialidades */
+    /** PUT /api/artistas/{id} — atualiza nome, bio, especialidades, email e status aceitandoAgendamentos */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateArtista(@PathVariable Integer id,
-                                            @RequestBody Map<String, String> body,
+                                            @RequestBody Map<String, Object> body,
                                             Authentication auth) {
         java.util.Optional<com.backend.INKFLOW.model.Artista> opt = artistaService.getByEmail(auth.getName())
                 .filter(a -> a.getId().equals(id));
         if (opt.isPresent()) {
             com.backend.INKFLOW.model.Artista artista = opt.get();
-            if (body.containsKey("nome")) artista.setNome(body.get("nome"));
-            if (body.containsKey("bio")) artista.setBio(body.get("bio"));
-            if (body.containsKey("especialidades")) artista.setEspecialidades(body.get("especialidades"));
+            if (body.containsKey("nome") && body.get("nome") != null) {
+                artista.setNome(body.get("nome").toString());
+            }
+            if (body.containsKey("bio")) {
+                artista.setBio(body.get("bio") != null ? body.get("bio").toString() : "");
+            }
+            if (body.containsKey("especialidades")) {
+                artista.setEspecialidades(body.get("especialidades") != null ? body.get("especialidades").toString() : "");
+            }
+            if (body.containsKey("email") && body.get("email") != null && !body.get("email").toString().isBlank()) {
+                artista.setEmail(body.get("email").toString().trim().toLowerCase());
+            }
+
+            // Atualização de status de disponibilidade / agendamentos
+            if (body.containsKey("ativo")) {
+                Object val = body.get("ativo");
+                if (val instanceof Boolean b) {
+                    artista.setAtivo(b);
+                } else if (val != null) {
+                    artista.setAtivo(Boolean.parseBoolean(val.toString()));
+                }
+            }
+            if (body.containsKey("aceitandoAgendamentos")) {
+                Object val = body.get("aceitandoAgendamentos");
+                if (val instanceof Boolean b) {
+                    artista.setAtivo(b);
+                } else if (val != null) {
+                    artista.setAtivo(Boolean.parseBoolean(val.toString()));
+                }
+            }
+
             return ResponseEntity.ok(ArtistaDTO.fromEntity(artistaService.save(artista)));
         } else {
             return ResponseEntity.status(403).build();

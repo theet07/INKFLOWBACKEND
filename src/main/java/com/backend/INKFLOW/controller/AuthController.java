@@ -64,6 +64,8 @@ public class AuthController {
             artistaUser.put("bio", artista.get().getBio());
             artistaUser.put("especialidades", artista.get().getEspecialidades());
             artistaUser.put("isArtist", true);
+            artistaUser.put("ativo", artista.get().getAtivo());
+            artistaUser.put("aceitandoAgendamentos", artista.get().getAtivo());
             artistaUser.put("role", "ROLE_ARTISTA");
             return ResponseEntity.ok(Map.of("success", true, "token", token, "user", artistaUser));
         }

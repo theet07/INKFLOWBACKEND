@@ -32,5 +32,6 @@ public class ArtistaDTO {
     public String getBio() { return bio; }
     public String getFotoUrl() { return fotoUrl; }
     public Boolean getAtivo() { return ativo; }
+    public Boolean getAceitandoAgendamentos() { return ativo; }
     public String getEmail() { return email; }
 }

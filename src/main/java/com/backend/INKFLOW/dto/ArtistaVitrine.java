@@ -14,6 +14,8 @@ public class ArtistaVitrine {
     private String role;
     private List<String> especialidades;
     private String bio;
+    private String email;
+    private Boolean ativo;
     private List<PortfolioItemResumo> portfolio;
 
     public ArtistaVitrine(Artista artista) {
@@ -22,6 +24,8 @@ public class ArtistaVitrine {
         this.fotoUrl = artista.getFotoUrl();
         this.role = artista.getRole();
         this.bio = artista.getBio();
+        this.email = artista.getEmail();
+        this.ativo = artista.getAtivo();
         this.especialidades = artista.getEspecialidades() != null && !artista.getEspecialidades().isBlank()
                 ? Arrays.stream(artista.getEspecialidades().split(","))
                         .map(String::trim)
@@ -42,6 +46,9 @@ public class ArtistaVitrine {
     public String getRole() { return role; }
     public List<String> getEspecialidades() { return especialidades; }
     public String getBio() { return bio; }
+    public String getEmail() { return email; }
+    public Boolean getAtivo() { return ativo; }
+    public Boolean getAceitandoAgendamentos() { return ativo; }
     public List<PortfolioItemResumo> getPortfolio() { return portfolio; }
 
     public static class PortfolioItemResumo {

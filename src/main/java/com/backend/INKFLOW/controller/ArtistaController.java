@@ -68,6 +68,27 @@ public class ArtistaController {
         return ResponseEntity.ok(dias);
     }
 
+    @GetMapping("/{id}/availability/slots")
+    public ResponseEntity<?> getSlots(@PathVariable Integer id,
+                                       @RequestParam String data) {
+        try {
+            LocalDate localDate = LocalDate.parse(data);
+            List<String> slots = disponibilidadeService.getSlotsDisponiveis(id, localDate);
+            List<Map<String, Object>> resultado = slots.stream()
+                    .map(s -> {
+                        Map<String, Object> slot = new HashMap<>();
+                        slot.put("horario", s);
+                        slot.put("disponivel", true);
+                        return slot;
+                    })
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "Erro ao carregar slots."));
+        }
+    }
+
     /** PUT /api/artistas/{id} — atualiza nome, bio, especialidades, email e status aceitandoAgendamentos */
     @PutMapping("/{id}")
     public ResponseEntity<?> updateArtista(@PathVariable Integer id,
